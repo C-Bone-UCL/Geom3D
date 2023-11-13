@@ -37,10 +37,12 @@ Geom3D
     Add a short description here!
 
 
-A longer description of your project goes here...
+to install the package in a new conda environment, run the following commands:
 
-
-.. _pyscaffold-notes:
+ conda create -n Geom3D python=3.11
+ source activate Geom3D
+ conda install -c conda-forge just
+ just dev_{cpu or gpu}
 
 Note
 ====
