@@ -11,7 +11,7 @@ from typing import Optional, Tuple
 
 import torch
 from torch import Tensor, nn
-from Geom3D.models.TransformerM.modules import FairseqDropout, quant_noise, utils
+from geom3d.models.TransformerM.modules import FairseqDropout, quant_noise, utils
 
 
 class MultiheadAttention(nn.Module):
