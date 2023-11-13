@@ -11,6 +11,7 @@ docs:
 # Do a dev install.
 dev_gpu:
   pip install numpy
+  pip install ipykernel
   pip install rdkit
   pip install scipy
   pip install psutil
@@ -18,17 +19,20 @@ dev_gpu:
   python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu118
   pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
   pip install cython
+  pip install torch_geometric
   pip install -e '.[dev]'
 
 dev_cpu:
   pip install numpy
   pip install rdkit
+  pip install ipykernel
   pip install scipy
   pip install psutil
   pip install wandb
   python3 -m pip install torch
   pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
   pip install cython
+  pip install torch_geometric
   pip install -e '.[dev]'
 
 

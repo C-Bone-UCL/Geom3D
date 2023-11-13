@@ -34,8 +34,10 @@ dependencies = [
   "biopython",
   "cython",
   "networkx",
+  "pyg",
   "ogb",
 ]
+
 requires-python = ">=3.7"
 dynamic = ["version"]
 readme = "README.rst"
@@ -56,8 +58,8 @@ dev = [
 ]
 
 [project.urls]
-github = "https://github.com/mohammedazzouzi15/stk_search"
-documentation = "https://stk_search.readthedocs.io"
+github = "https://github.com/mohammedazzouzi15/Geom3D"
+documentation = "https://Geom3D.readthedocs.io"
 
 [tool.setuptools_scm]
 
