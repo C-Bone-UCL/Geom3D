@@ -21,7 +21,7 @@ dependencies = [
   "rdkit",
   "ipywidgets",
   "psutil",
-  "pytorch-lightning",
+  "lightning",
   "torchmetrics",
   "lie_learn",
   "ase",

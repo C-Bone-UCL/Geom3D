@@ -22,6 +22,7 @@ dev_gpu:
   pip install cython
   pip install -e '.[dev]'
 
+# Do a dev install.
 dev_cpu:
   pip install numpy
   pip install rdkit

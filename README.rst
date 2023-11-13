@@ -42,7 +42,7 @@ to install the package in a new conda environment, run the following commands:
  conda create -n Geom3D python=3.11
  source activate Geom3D
  conda install -c conda-forge just
- just dev_{cpu or gpu}
+ just dev_{cpu or gpu} # this only works in linux for the moment
 
 Note
 ====
