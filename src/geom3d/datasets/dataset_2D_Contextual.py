@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from .dataset_2D_Contextual_utils import MolVocab, atom_to_vocab, bond_to_vocab
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_2D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_2D
 
         
 class MoleculeContextualDataset(InMemoryDataset):

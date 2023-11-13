@@ -118,7 +118,7 @@ class MoleculeDataset2DDense(Dataset):
 
 
 if __name__ == "__main__":
-    from Geom3D.datasets import MoleculeDatasetQM92D
+    from geom3d.datasets import MoleculeDatasetQM92D
     
     data_root = "../../data/molecule_datasets/qm9_2D"
     dataset = "qm9"

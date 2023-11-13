@@ -5,7 +5,7 @@ import torch
 
 import ase.data
 
-from Geom3D.models.NequIP.data import AtomicData, AtomicDataDict
+from geom3d.models.NequIP.data import AtomicData, AtomicDataDict
 
 
 class TypeMapper:

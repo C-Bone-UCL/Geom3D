@@ -4,10 +4,10 @@ from itertools import repeat
 from tqdm import tqdm
 import torch
 from torch_geometric.data import Data, InMemoryDataset
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_MMFF_3D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_MMFF_3D
 from .dataset_3D import extend_graph
 
-from Geom3D.datasets.dataset_MoleculeNet_2D import \
+from geom3d.datasets.dataset_MoleculeNet_2D import \
     _load_tox21_dataset, _load_hiv_dataset, _load_bace_dataset, _load_bbbp_dataset, \
     _load_clintox_dataset, _load_sider_dataset, _load_toxcast_dataset, _load_esol_dataset, \
     _load_freesolv_dataset, _load_lipophilicity_dataset, _load_malaria_dataset, _load_cep_dataset, _load_muv_dataset

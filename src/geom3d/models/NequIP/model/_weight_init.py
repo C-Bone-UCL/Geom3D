@@ -5,8 +5,8 @@ import torch
 import e3nn.o3
 import e3nn.nn
 
-from Geom3D.models.NequIP.nn import GraphModuleMixin
-from Geom3D.models.NequIP.utils import Config
+from geom3d.models.NequIP.nn import GraphModuleMixin
+from geom3d.models.NequIP.utils import Config
 
 
 # == Load old state ==

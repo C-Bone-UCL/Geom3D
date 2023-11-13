@@ -11,7 +11,7 @@ from rdkit import Chem
 from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
 
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
 
 
 class MoleculeDatasetGEOM(InMemoryDataset):

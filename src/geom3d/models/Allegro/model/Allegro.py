@@ -3,26 +3,26 @@ import logging
 
 from e3nn import o3
 
-from Geom3D.models.NequIP.data import AtomicDataDict, AtomicDataset
+from geom3d.models.NequIP.data import AtomicDataDict, AtomicDataset
 
-from Geom3D.models.NequIP.nn import SequentialGraphNetwork, AtomwiseReduce
-from Geom3D.models.NequIP.nn.radial_basis import BesselBasis
+from geom3d.models.NequIP.nn import SequentialGraphNetwork, AtomwiseReduce
+from geom3d.models.NequIP.nn.radial_basis import BesselBasis
 
-from Geom3D.models.NequIP.nn.embedding import (
+from geom3d.models.NequIP.nn.embedding import (
     OneHotAtomEncoding,
     SphericalHarmonicEdgeAttrs,
     RadialBasisEdgeEncoding,
 )
 
-from Geom3D.models.Allegro.nn import (
+from geom3d.models.Allegro.nn import (
     NormalizedBasis,
     EdgewiseEnergySum,
     Allegro_Module,
     ScalarMLP,
 )
-from Geom3D.models.Allegro._keys import EDGE_FEATURES, EDGE_ENERGY
+from geom3d.models.Allegro._keys import EDGE_FEATURES, EDGE_ENERGY
 
-from Geom3D.models.NequIP.model import builder_utils
+from geom3d.models.NequIP.model import builder_utils
 
 
 def Allegro(config, initialize: bool, dataset: Optional[AtomicDataset] = None):

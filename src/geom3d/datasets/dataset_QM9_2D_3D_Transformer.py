@@ -8,8 +8,8 @@ from rdkit.Chem import AllChem
 from scipy.constants import physical_constants
 from torch_geometric.data import (Data, InMemoryDataset, download_url, extract_zip)
 
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
-from Geom3D.dataloaders.transformer_padding.data_transform import preprocess_item
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
+from geom3d.dataloaders.transformer_padding.data_transform import preprocess_item
 
 
 class MoleculeDatasetQM9_2Dand3DTransformer(InMemoryDataset):

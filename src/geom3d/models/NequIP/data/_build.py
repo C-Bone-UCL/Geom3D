@@ -1,10 +1,10 @@
 import inspect
 from importlib import import_module
 
-from Geom3D.models.NequIP import data
-from Geom3D.models.NequIP.data.transforms import TypeMapper
-from Geom3D.models.NequIP.data import AtomicDataset, register_fields
-from Geom3D.models.NequIP.utils import instantiate, get_w_prefix
+from geom3d.models.NequIP import data
+from geom3d.models.NequIP.data.transforms import TypeMapper
+from geom3d.models.NequIP.data import AtomicDataset, register_fields
+from geom3d.models.NequIP.utils import instantiate, get_w_prefix
 
 
 def dataset_from_config(config, prefix: str = "dataset") -> AtomicDataset:

@@ -9,7 +9,7 @@ from rdkit import Chem
 from scipy.constants import physical_constants
 from torch_geometric.data import (Data, InMemoryDataset, download_url, extract_zip)
 
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D, create_2D_mol_from_3D_mol, extract_MMFF_energy_pos
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D, create_2D_mol_from_3D_mol, extract_MMFF_energy_pos
 
 
 class MoleculeDatasetQM9_3DandMMFF(InMemoryDataset):

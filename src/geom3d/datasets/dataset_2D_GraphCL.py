@@ -5,7 +5,7 @@ from itertools import repeat
 import torch
 from torch_geometric.data import Data
 from torch_geometric.utils import subgraph, to_networkx
-from Geom3D.datasets import MoleculeNetDataset2D
+from geom3d.datasets import MoleculeNetDataset2D
 from ogb.utils.features import get_bond_feature_dims
 bond_dims = get_bond_feature_dims()
 

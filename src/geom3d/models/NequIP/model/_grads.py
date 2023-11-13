@@ -1,7 +1,7 @@
-from Geom3D.models.NequIP.nn import GraphModuleMixin, GradientOutput
-from Geom3D.models.NequIP.nn import PartialForceOutput as PartialForceOutputModule
-from Geom3D.models.NequIP.nn import StressOutput as StressOutputModule
-from Geom3D.models.NequIP.data import AtomicDataDict
+from geom3d.models.NequIP.nn import GraphModuleMixin, GradientOutput
+from geom3d.models.NequIP.nn import PartialForceOutput as PartialForceOutputModule
+from geom3d.models.NequIP.nn import StressOutput as StressOutputModule
+from geom3d.models.NequIP.data import AtomicDataDict
 
 
 def ForceOutput(model: GraphModuleMixin) -> GradientOutput:

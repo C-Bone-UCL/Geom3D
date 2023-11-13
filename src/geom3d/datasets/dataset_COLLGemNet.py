@@ -3,7 +3,7 @@ from tqdm import tqdm
 
 import torch
 from torch_geometric.data import InMemoryDataset
-from Geom3D.datasets.dataset_GemNet_utils import get_id_data_single
+from geom3d.datasets.dataset_GemNet_utils import get_id_data_single
 
 
 class DatasetCOLLGemNet(InMemoryDataset):

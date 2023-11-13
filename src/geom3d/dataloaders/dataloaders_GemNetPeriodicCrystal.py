@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import Data
 from torch.utils.data import DataLoader
-from Geom3D.datasets.dataset_GemNet_utils import get_id_data_list_for_material
+from geom3d.datasets.dataset_GemNet_utils import get_id_data_list_for_material
 
 
 class BatchGemNetPeriodicCrystal(Data):

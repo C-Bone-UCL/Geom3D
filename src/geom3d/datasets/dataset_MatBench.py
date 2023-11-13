@@ -12,7 +12,7 @@ from torch_geometric.data import Data
 from torch_cluster import radius_graph
 
 
-from Geom3D.datasets.dataset_utils import get_graphs_within_cutoff, preiodic_augmentation_with_lattice, make_edges_into_two_direction
+from geom3d.datasets.dataset_utils import get_graphs_within_cutoff, preiodic_augmentation_with_lattice, make_edges_into_two_direction
 
 
 class DatasetMatBench(InMemoryDataset):

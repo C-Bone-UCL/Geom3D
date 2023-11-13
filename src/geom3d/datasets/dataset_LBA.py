@@ -15,7 +15,7 @@ from torch_geometric.data import Data, InMemoryDataset
 
 import atom3d.protein.sequence as seq
 import atom3d.util.formats as fo
-from Geom3D.datasets.PDBBind_utils import get_pocket_res, get_pdb_code, PocketSelect, find_files, identity_split, write_index_to_file
+from geom3d.datasets.PDBBind_utils import get_pocket_res, get_pdb_code, PocketSelect, find_files, identity_split, write_index_to_file
 
 
 # Credit to https://github.com/drorlab/atom3d/blob/master/examples/lba/enn/data.py#L294

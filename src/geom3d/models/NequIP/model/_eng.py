@@ -3,14 +3,14 @@ import logging
 
 from e3nn import o3
 
-from Geom3D.models.NequIP.data import AtomicDataDict, AtomicDataset
-from Geom3D.models.NequIP.nn import (
+from geom3d.models.NequIP.data import AtomicDataDict, AtomicDataset
+from geom3d.models.NequIP.nn import (
     SequentialGraphNetwork,
     AtomwiseLinear,
     AtomwiseReduce,
     ConvNetLayer,
 )
-from Geom3D.models.NequIP.nn.embedding import (
+from geom3d.models.NequIP.nn.embedding import (
     OneHotAtomEncoding,
     RadialBasisEdgeEncoding,
     SphericalHarmonicEdgeAttrs,
