@@ -2,8 +2,8 @@ from typing import Optional
 
 import torch
 
-from Geom3D.models.NequIP.utils import Config
-from Geom3D.models.NequIP.data import AtomicDataset, AtomicDataDict
+from geom3d.models.NequIP.utils import Config
+from geom3d.models.NequIP.data import AtomicDataset, AtomicDataDict
 
 
 def _add_avg_num_neighbors_helper(data):

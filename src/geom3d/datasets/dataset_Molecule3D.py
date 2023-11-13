@@ -12,7 +12,7 @@ from tqdm import tqdm
 from rdkit import Chem
 from itertools import repeat
 from torch_geometric.data import InMemoryDataset
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
 
 
 class Molecule3D(InMemoryDataset):

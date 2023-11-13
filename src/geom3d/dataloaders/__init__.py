@@ -1,13 +1,13 @@
-from Geom3D.dataloaders.dataloaders_AttrMask import MaskAtom, DataLoaderMasking
+from geom3d.dataloaders.dataloaders_AttrMask import MaskAtom, DataLoaderMasking
 
-from Geom3D.dataloaders.dataloaders_ContextPred3D import ExtractSubstructureContextPair, DataLoaderSubstructContext3D
+from geom3d.dataloaders.dataloaders_ContextPred3D import ExtractSubstructureContextPair, DataLoaderSubstructContext3D
 
-from Geom3D.dataloaders.dataloaders_LEP import DataLoaderLEP
+from geom3d.dataloaders.dataloaders_LEP import DataLoaderLEP
 
-from Geom3D.dataloaders.dataloaders_GemNet import DataLoaderGemNet
-from Geom3D.dataloaders.dataloaders_GemNetLEP import DataLoaderGemNetLEP
-from Geom3D.dataloaders.dataloaders_GemNetPeriodicCrystal import DataLoaderGemNetPeriodicCrystal
+from geom3d.dataloaders.dataloaders_GemNet import DataLoaderGemNet
+from geom3d.dataloaders.dataloaders_GemNetLEP import DataLoaderGemNetLEP
+from geom3d.dataloaders.dataloaders_GemNetPeriodicCrystal import DataLoaderGemNetPeriodicCrystal
 
-from Geom3D.dataloaders.dataloaders_AtomTuple import AtomTupleExtractor, DataLoaderAtomTuple
+from geom3d.dataloaders.dataloaders_AtomTuple import AtomTupleExtractor, DataLoaderAtomTuple
 
-from Geom3D.dataloaders.dataloaders_PeriodicCrystal import DataLoaderPeriodicCrystal
+from geom3d.dataloaders.dataloaders_PeriodicCrystal import DataLoaderPeriodicCrystal

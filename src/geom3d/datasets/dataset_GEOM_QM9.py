@@ -13,8 +13,8 @@ from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
 import copy
 
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
-from Geom3D.datasets.dataset_3D import extend_graph
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
+from geom3d.datasets.dataset_3D import extend_graph
 
 
 class MoleculeDatasetGEOMQM9(InMemoryDataset):

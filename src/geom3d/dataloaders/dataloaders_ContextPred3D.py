@@ -5,7 +5,7 @@ from torch_geometric.data import Data
 from torch.utils.data import DataLoader
 
 import networkx as nx
-from Geom3D.datasets import graph_data_obj_to_nx_simple, nx_to_graph_data_obj_simple
+from geom3d.datasets import graph_data_obj_to_nx_simple, nx_to_graph_data_obj_simple
 
 
 def reset_idxes(G):

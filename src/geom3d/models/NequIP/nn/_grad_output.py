@@ -6,8 +6,8 @@ import torch
 from e3nn.o3 import Irreps
 from e3nn.util.jit import compile_mode
 
-from Geom3D.models.NequIP.data import AtomicDataDict
-from Geom3D.models.NequIP.nn import GraphModuleMixin
+from geom3d.models.NequIP.data import AtomicDataDict
+from geom3d.models.NequIP.nn import GraphModuleMixin
 
 
 @compile_mode("script")

@@ -7,7 +7,7 @@ from rdkit.Chem import AllChem
 from itertools import repeat
 import torch
 from torch_geometric.data import Data, InMemoryDataset
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_2D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_2D
 from .dataset_3D import extend_graph
 
 

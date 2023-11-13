@@ -9,7 +9,7 @@ import json
 
 import torch
 from torch.utils.data import Dataset
-from Geom3D.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
+from geom3d.datasets.dataset_utils import mol_to_graph_data_obj_simple_3D
 
 
 class MoleculeDatasetQM9FingerprintsSMILES(Dataset):

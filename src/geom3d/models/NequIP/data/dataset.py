@@ -20,18 +20,18 @@ import torch.multiprocessing as mp
 from torch_geometric.data import Batch, Dataset
 from torch_geometric.data import download_url, extract_zip
 
-import Geom3D.models.NequIP
-from Geom3D.models.NequIP.data import (
+import geom3d.models.NequIP
+from geom3d.models.NequIP.data import (
     AtomicData,
     AtomicDataDict,
     _NODE_FIELDS,
     _EDGE_FIELDS,
     _GRAPH_FIELDS,
 )
-from Geom3D.models.NequIP.utils.batch_ops import bincount
-from Geom3D.models.NequIP.utils.regressor import solver
-from Geom3D.models.NequIP.utils.savenload import atomic_write
-from Geom3D.models.NequIP.utils.multiprocessing import num_tasks
+from geom3d.models.NequIP.utils.batch_ops import bincount
+from geom3d.models.NequIP.utils.regressor import solver
+from geom3d.models.NequIP.utils.savenload import atomic_write
+from geom3d.models.NequIP.utils.multiprocessing import num_tasks
 from .transforms import TypeMapper
 from .AtomicData import _process_dict
 

@@ -6,8 +6,8 @@ import torch
 
 from e3nn import o3
 
-from Geom3D.models.NequIP.data import AtomicDataDict
-from Geom3D.models.NequIP.utils import instantiate
+from geom3d.models.NequIP.data import AtomicDataDict
+from geom3d.models.NequIP.utils import instantiate
 
 
 class GraphModuleMixin:
