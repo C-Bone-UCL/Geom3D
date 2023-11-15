@@ -1,0 +1,32 @@
+{
+    "STK_path": "/home/ma11115/STK_search/",
+    "batch_size": 128,
+    "database_name": "stk_mohammed_BO",
+    "df_precursor": "calculation_data_precursor_310823_clean.pkl",
+    "df_total": "df_total_new2023_08_20.csv",
+    "emb_dim": 128,
+    "max_epochs": 3,
+    "model": {
+        "SchNet_cutoff": 10,
+        "SchNet_num_filters": 128,
+        "SchNet_num_gaussians": 51,
+        "SchNet_num_interactions": 6,
+        "SchNet_readout": "mean",
+        "edge_class": 5,
+        "emb_dim": 128,
+        "node_class": 119,
+        "num_tasks": 1
+    },
+    "model_path": "",
+    "name": "SchNet_target_1K_TEST_5e4lr",
+    "num_molecules": 100,
+    "num_tasks": 1,
+    "num_workers": 0,
+    "number_of_fragement": 6,
+    "pymongo_client": "mongodb://129.31.66.201/",
+    "running_dir": "/home/ma11115/Geom3D/training",
+    "save_dataset": false,
+    "seed": 42,
+    "train_ratio": 0.8,
+    "valid_ratio": 0.1
+}
