@@ -219,10 +219,11 @@ class CFConv(MessagePassing):
         self.lin2.bias.data.fill_(0)
 
     def forward(self, x, edge_index, edge_weight, edge_attr):
-        C = 0.5 * (torch.cos(edge_weight * PI / self.cutoff) + 1.0)
-        W = self.nn(edge_attr) * C.view(-1, 1)
+        C = 0.5 * (torch.cos(edge_weight * 3.14 / self.cutoff) + 1.0)
 
+        W = self.nn(edge_attr) * C.view(-1, 1)
         x = self.lin1(x)
+        # propagate_type: ( x: Tensor, W: Tensor )
         x = self.propagate(edge_index, x=x, W=W)
         x = self.lin2(x)
         return x

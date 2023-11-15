@@ -49,16 +49,22 @@ def main(config_dir):
     graph_pred_linear = torch.nn.Linear(
         model_config["emb_dim"], model_config["num_tasks"]
     )
+    if config["model_path"]:
+        model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
     wandb.login()
     # model
-    pymodel_SCHNET = Pymodel(model, graph_pred_linear)
+    #check if chkpt exists
+    if os.path.exists(config["pl_model_chkpt"]):
+        pymodel_SCHNET = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
+    else:
+        pymodel_SCHNET = Pymodel(model, graph_pred_linear)
     wandb_logger = WandbLogger(log_model="all", project="Geom3D", name=config["name"])
     wandb_logger.log_hyperparams(config)
 
     # train model
     checkpoint_callback = ModelCheckpoint(
-        dirpath=name,
+        dirpath=config["name"],
         filename="{epoch}-{val_loss:.2f}-{other_metric:.2f}",
         monitor="val_loss",
         mode="min",
@@ -143,6 +149,12 @@ class Pymodel(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
         return optimizer
 
+
+def load_3d_rpr(model, output_model_path):
+    saved_model_dict = torch.load(output_model_path)
+    model.load_state_dict(saved_model_dict["model"])
+    model.eval()
+    return model
 
 def load_molecule(InChIKey, target, db):
     polymer = db.get({"InChIKey": InChIKey})

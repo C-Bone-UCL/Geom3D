@@ -38,6 +38,7 @@ def read_config(dir):
         config['valid_ratio'] = 0.1
         config['number_of_fragement'] = 6
         config["model_path"] = ""
+        config["pl_model_chkpt"] = ""
         save_config(config, dir)
         print("config saved to", dir)
 

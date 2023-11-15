@@ -23,24 +23,38 @@ from geom3d import Database_utils
 from pathlib import Path
 from geom3d.config_utils import read_config
 
+
 def main(config_dir):
     config = read_config(config_dir)
+    os.chdir(config["running_dir"])
     np.random.seed(config["seed"])
     torch.cuda.manual_seed_all(config["seed"])
     config["device"] = (
         "cuda" if torch.cuda.is_available() else torch.device("cpu")
     )
-    dataset = load_data(config)
+    model_config = config["model"]
+    model = SchNet(
+        hidden_channels=model_config["emb_dim"],
+        num_filters=model_config["SchNet_num_filters"],
+        num_interactions=model_config["SchNet_num_interactions"],
+        num_gaussians=model_config["SchNet_num_gaussians"],
+        cutoff=model_config["SchNet_cutoff"],
+        readout=model_config["SchNet_readout"],
+        node_class=model_config["node_class"],
+    )
+    dataset = load_data(config, model)
     train_loader, val_loader, test_loader = train_val_test_split(
         dataset, config=config
     )
-    model_config = config["model"]
-    os.chdir(config["dir"])
     wandb.login()
     # model
-    EncodingModel = FragEncoding(config['embedding_dim'], config["number_of_fragement"])
-    name=config["name"]+"_frag_"+str(config["number_of_fragement"])
-    wandb_logger = WandbLogger(log_model="all", project="Geom3D_fragencoding", name=name)
+    EncodingModel = FragEncoding(
+        config["emb_dim"], config["number_of_fragement"]
+    )
+    name = config["name"] + "_frag_" + str(config["number_of_fragement"])
+    wandb_logger = WandbLogger(
+        log_model="all", project="Geom3D_fragencoding", name=name
+    )
     wandb_logger.log_hyperparams(config)
 
     # train model
@@ -65,14 +79,20 @@ def main(config_dir):
     )
     wandb.finish()
 
+
 class FragEncoding(pl.LightningModule):
-    def __init__(self, embedding_dim=128,num_fragment=6):
+    def __init__(self, embedding_dim=128, num_fragment=6):
         super().__init__()
         self.save_hyperparameters()
         self.encoder = nn.Sequential(
-            nn.Linear(num_fragment*embedding_dim, embedding_dim*2), nn.ReLU(), nn.Linear(embedding_dim*2, embedding_dim))
-        self.decoder =  nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim*2), nn.ReLU(), nn.Linear(embedding_dim*2, num_fragment*embedding_dim)
+            nn.Linear(num_fragment * embedding_dim, embedding_dim * 2),
+            nn.ReLU(),
+            nn.Linear(embedding_dim * 2, embedding_dim),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(embedding_dim, embedding_dim * 2),
+            nn.ReLU(),
+            nn.Linear(embedding_dim * 2, num_fragment * embedding_dim),
         )
 
     def training_step(self, batch, batch_idx):
@@ -92,11 +112,12 @@ class FragEncoding(pl.LightningModule):
 
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
-        x, y = batch
-        x = x.view(x.size(0), -1)
+        x, y = batch.x, batch.y
+        #x = x.view(x.size(0), -1)
+        print(x.shape)
         y_pred = self.encoder(x)
-        z = self.decoder(z)
-        loss = Functional.mse_loss(z, x)+Functional.mse_loss(y, y_pred)
+        z = self.decoder(y_pred)
+        loss = Functional.mse_loss(z, x) + Functional.mse_loss(y, y_pred)
         return loss
 
     def configure_optimizers(self):
@@ -104,7 +125,7 @@ class FragEncoding(pl.LightningModule):
         return optimizer
 
 
-def load_data(config):
+def load_data(config,model):
     df_path = Path(
         config["STK_path"], "data/output/Full_dataset/", config["df_total"]
     )
@@ -121,9 +142,9 @@ def load_data(config):
         client,
         database=config["database_name"],
     )
-    #check if model is in the path
+    # check if model is in the path
     if os.path.exists(config["model_path"]):
-        model = torch.jit.load(config["model_path"])
+        model = load_3d_rpr(model, config["model_path"])
         dataset = generate_dataset_frag(
             df_total,
             model,
@@ -132,49 +153,140 @@ def load_data(config):
             number_of_fragement=config["number_of_fragement"],
         )
         if config["save_dataset"]:
-            torch.save(dataset, "dataset_frag.pt")
+            name = config["name"] + "_frag_" + str(config["number_of_fragement"])
+            os.makedirs(name, exist_ok=True)
+            torch.save(dataset, name+"/dataset_frag.pt")
         return dataset
     else:
         print("model not found")
         return None
 
-def generate_dataset_frag(df_total, model, db, number_of_molecules=1000,number_of_fragement):
+
+def load_3d_rpr(model, output_model_path):
+    saved_model_dict = torch.load(output_model_path)
+    model.load_state_dict(saved_model_dict["model"])
+    model.eval()
+    return model
+
+
+def generate_dataset_frag(
+    df_total, model, db, number_of_molecules=1000, number_of_fragement=6
+):
     molecule_index = np.random.choice(
         len(df_total), number_of_molecules, replace=False
     )
     data_list = []
     for i in molecule_index:
-        molecule = fragment_based_encoding(df_total["InChIKey"][i], db, model,number_of_fragement)
-        if molecule is not None:
-            data_list.append(molecule)
+        moldata = fragment_based_encoding(
+            df_total["InChIKey"][i], db, model, number_of_fragement
+        )
+        if moldata is not None:
+            data_list.append(moldata)
     return data_list
 
 
 def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
     polymer = db_poly.get({"InChIKey": InChIKey})
     frags = []
+    dat_list = list(polymer.get_atomic_positions())
+    positions = np.vstack(dat_list)
+    positions = torch.tensor(positions, dtype=torch.float)
+    atom_types = list(
+        [
+            atom.get_atom().get_atomic_number()
+            for atom in polymer.get_atom_infos()
+        ]
+    )
+    atom_types = torch.tensor(atom_types, dtype=torch.long)
+    molecule = Data(x=atom_types, positions=positions)
     if len(list(polymer.get_building_blocks())) == number_of_fragement:
-        for molecule in polymer.get_building_blocks():
-
-            dat_list = list(molecule.get_atomic_positions())
+        for molecule_bb in polymer.get_building_blocks():
+            dat_list = list(molecule_bb.get_atomic_positions())
             positions = np.vstack(dat_list)
             positions = torch.tensor(positions, dtype=torch.float)
             atom_types = list(
-                [atom.get_atomic_number() for atom in molecule.get_atoms()]
+                [atom.get_atomic_number() for atom in molecule_bb.get_atoms()]
             )
             atom_types = torch.tensor(atom_types, dtype=torch.long)
-            molecule = Data(
+            molecule_frag = Data(
                 x=atom_types,
                 positions=positions,
             )
-            frags.append(molecule)
-        batch = Batch.from_data_list(frags)
-        original_encoding = model(batch.x, batch.positions, batch.batch)
-        original_encoding = original_encoding.reshape((-1,))
-        return original_encoding
+            frags.append(molecule_frag)
+        
+        with torch.no_grad():
+            model.eval()
+            batch = Batch.from_data_list(frags)
+            original_encoding = model(batch.x, batch.positions, batch.batch)
+            original_encoding = original_encoding.reshape((-1,))
+            original_encoding = original_encoding.unsqueeze(0)
+            opt_geom_encoding = model(molecule.x, molecule.positions)
+        return Data(x=original_encoding, y=opt_geom_encoding, InChIKey=InChIKey)
+
+
+def train_val_test_split(dataset, config, smiles_list=None):
+    seed = config["seed"]
+    num_mols = len(dataset)
+    np.random.seed(seed)
+    all_idx = np.random.permutation(num_mols)
+
+    Nmols = num_mols
+    Ntrain = int(num_mols * config["train_ratio"])
+    Nvalid = int(num_mols * config["valid_ratio"])
+    Ntest = Nmols - (Ntrain + Nvalid)
+
+    train_idx = all_idx[:Ntrain]
+    valid_idx = all_idx[Ntrain : Ntrain + Nvalid]
+    test_idx = all_idx[Ntrain + Nvalid :]
+
+    print("train_idx: ", train_idx)
+    print("valid_idx: ", valid_idx)
+    print("test_idx: ", test_idx)
+    # np.savez("customized_01", train_idx=train_idx, valid_idx=valid_idx, test_idx=test_idx)
+
+    assert len(set(train_idx).intersection(set(valid_idx))) == 0
+    assert len(set(valid_idx).intersection(set(test_idx))) == 0
+    assert len(train_idx) + len(valid_idx) + len(test_idx) == num_mols
+    train_dataset = [dataset[x] for x in train_idx]
+    valid_dataset = [dataset[x] for x in valid_idx]
+    test_dataset = [dataset[x] for x in test_idx]
+    # Set dataloaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True,
+        num_workers=config["num_workers"],
+    )
+    val_loader = DataLoader(
+        valid_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True,
+        num_workers=config["num_workers"],
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True,
+        num_workers=config["num_workers"],
+    )
+    
+    if not smiles_list:
+        return train_loader, val_loader, test_loader
+    else:
+        train_smiles = [smiles_list[i] for i in train_idx]
+        valid_smiles = [smiles_list[i] for i in valid_idx]
+        test_smiles = [smiles_list[i] for i in test_idx]
+        return (
+            train_loader,
+            val_loader,
+            test_loader,
+            (train_smiles, valid_smiles, test_smiles),
+        )
+
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
+
     root = os.getcwd()
     argparser = ArgumentParser()
     argparser.add_argument(

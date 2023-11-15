@@ -39,6 +39,7 @@ coverage.xml
 .pytest_cache/
 
 # Build and docs folder/files
+training/*
 build/*
 dist/*
 sdist/*
@@ -52,3 +53,5 @@ MANIFEST
 .venv*/
 .conda*/
 .python-version
+*.pt
+*.ckpt
