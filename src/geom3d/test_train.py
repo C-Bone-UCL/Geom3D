@@ -170,7 +170,8 @@ def load_molecule(InChIKey, target, db):
     atom_types = torch.tensor(atom_types, dtype=torch.long)
     y = torch.tensor(target, dtype=torch.float32)
 
-    molecule = Data(x=atom_types, positions=positions, y=y)
+    molecule = Data(x=atom_types, positions=positions, y=y
+    InChIKey=InChIKey)
     return molecule
 
 
@@ -186,27 +187,6 @@ def generate_dataset(df_total, df_precursors, db, number_of_molecules=1000):
         data_list.append(molecule)
     return data_list
 
-
-def fragment_based_encoding(InChIKey, db_poly, model):
-    polymer = db_poly.get({"InChIKey": InChIKey})
-    frags = []
-    for molecule in polymer.get_building_blocks():
-        dat_list = list(molecule.get_atomic_positions())
-        positions = np.vstack(dat_list)
-        positions = torch.tensor(positions, dtype=torch.float)
-        atom_types = list(
-            [atom.get_atomic_number() for atom in molecule.get_atoms()]
-        )
-        atom_types = torch.tensor(atom_types, dtype=torch.long)
-        molecule = Data(
-            x=atom_types,
-            positions=positions,
-        )
-        frags.append(molecule)
-    batch = Batch.from_data_list(frags)
-    original_encoding = model(batch.x, batch.positions, batch.batch)
-    original_encoding = original_encoding.reshape((-1,))
-    return original_encoding
 
 
 def train_val_test_split(dataset, config, smiles_list=None):
