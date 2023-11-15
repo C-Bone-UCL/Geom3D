@@ -170,8 +170,8 @@ def load_molecule(InChIKey, target, db):
     atom_types = torch.tensor(atom_types, dtype=torch.long)
     y = torch.tensor(target, dtype=torch.float32)
 
-    molecule = Data(x=atom_types, positions=positions, y=y
-    InChIKey=InChIKey)
+    molecule = Data(x=atom_types, positions=positions, y=y,
+        InChIKey=InChIKey)
     return molecule
 
 
