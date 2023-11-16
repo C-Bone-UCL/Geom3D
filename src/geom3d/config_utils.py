@@ -39,6 +39,8 @@ def read_config(dir):
         config['number_of_fragement'] = 6
         config["model_path"] = ""
         config["pl_model_chkpt"] = ""
+        config["load_dataset"] = False
+        config["dataset_path"] = ""
         save_config(config, dir)
         print("config saved to", dir)
 

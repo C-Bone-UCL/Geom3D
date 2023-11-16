@@ -88,6 +88,13 @@ def main(config_dir):
 
 
 def load_data(config):
+    
+    if config["load_dataset"]:
+        if os.path.exists(config["dataset_path"]):
+            dataset = torch.load(config["dataset_path"])
+            return dataset
+        else:
+            print("dataset not found")
     df_path = Path(
         config["STK_path"], "data/output/Full_dataset/", config["df_total"]
     )
