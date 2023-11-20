@@ -41,6 +41,7 @@ def read_config(dir):
         config["pl_model_chkpt"] = ""
         config["load_dataset"] = False
         config["dataset_path"] = ""
+        config["dataset_path_frag"] = ""
         save_config(config, dir)
         print("config saved to", dir)
 

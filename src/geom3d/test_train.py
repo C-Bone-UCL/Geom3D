@@ -119,14 +119,16 @@ def load_data(config):
         number_of_molecules=config["num_molecules"],
     )
     if config["save_dataset"]:
-        torch.save(dataset, "dataset.pt")
+            name = config["name"] + "_frag_" + str(config["number_of_fragement"])
+            os.makedirs(name, exist_ok=True)
+            torch.save(dataset, name+"/dataset.pt")
     return dataset
 
 
 class Pymodel(pl.LightningModule):
     def __init__(self, model, graph_pred_linear):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['graph_pred_linear', 'model'])
         self.molecule_3D_repr = model
         self.graph_pred_linear = graph_pred_linear
 
@@ -155,6 +157,11 @@ class Pymodel(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
         return optimizer
+    
+    def forward(self, batch):
+        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
+        z = self.graph_pred_linear(z)
+        return z
 
 
 def load_3d_rpr(model, output_model_path):

@@ -22,7 +22,7 @@ from geom3d.models import SchNet
 from geom3d import Database_utils
 from pathlib import Path
 from geom3d.config_utils import read_config
-
+from geom3d.test_train import Pymodel
 
 def main(config_dir):
     config = read_config(config_dir)
@@ -32,17 +32,9 @@ def main(config_dir):
     config["device"] = (
         "cuda" if torch.cuda.is_available() else torch.device("cpu")
     )
-    model_config = config["model"]
-    model = SchNet(
-        hidden_channels=model_config["emb_dim"],
-        num_filters=model_config["SchNet_num_filters"],
-        num_interactions=model_config["SchNet_num_interactions"],
-        num_gaussians=model_config["SchNet_num_gaussians"],
-        cutoff=model_config["SchNet_cutoff"],
-        readout=model_config["SchNet_readout"],
-        node_class=model_config["node_class"],
-    )
-    dataset = load_data(config, model)
+    #model_config = config["model"]
+
+    dataset = load_data(config)
     train_loader, val_loader, test_loader = train_val_test_split(
         dataset, config=config
     )
@@ -114,7 +106,6 @@ class FragEncoding(pl.LightningModule):
         """convenience function since train/valid/test steps are similar"""
         x, y = batch.x, batch.y
         #x = x.view(x.size(0), -1)
-        print(x.shape)
         y_pred = self.encoder(x)
         z = self.decoder(y_pred)
         loss = Functional.mse_loss(z, x) + Functional.mse_loss(y, y_pred)
@@ -125,7 +116,13 @@ class FragEncoding(pl.LightningModule):
         return optimizer
 
 
-def load_data(config,model):
+def load_data(config):
+    if config["load_dataset"]:
+        if os.path.exists(config["dataset_path_frag"]):
+            dataset = torch.load(config["dataset_path_frag"])
+            return dataset
+        else:
+            print("dataset not found")
     df_path = Path(
         config["STK_path"], "data/output/Full_dataset/", config["df_total"]
     )
@@ -143,8 +140,11 @@ def load_data(config,model):
         database=config["database_name"],
     )
     # check if model is in the path
-    if os.path.exists(config["model_path"]):
-        model = load_3d_rpr(model, config["model_path"])
+    if os.path.exists(config["pl_model_chkpt"]):
+        pymodel = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
+        pymodel.freeze()
+        pymodel.to(config["device"])
+        model = pymodel.molecule_3D_repr
         dataset = generate_dataset_frag(
             df_total,
             model,
@@ -186,37 +186,42 @@ def generate_dataset_frag(
 
 
 def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
+    device = (
+        "cuda" if torch.cuda.is_available() else torch.device("cpu")
+    )
     polymer = db_poly.get({"InChIKey": InChIKey})
     frags = []
     dat_list = list(polymer.get_atomic_positions())
     positions = np.vstack(dat_list)
-    positions = torch.tensor(positions, dtype=torch.float)
+    positions = torch.tensor(positions, dtype=torch.float, device=device)
     atom_types = list(
         [
             atom.get_atom().get_atomic_number()
             for atom in polymer.get_atom_infos()
         ]
     )
-    atom_types = torch.tensor(atom_types, dtype=torch.long)
-    molecule = Data(x=atom_types, positions=positions)
+    
+    atom_types = torch.tensor(atom_types, dtype=torch.long, device=device)
+    molecule = Data(x=atom_types, positions=positions, device=device)
     if len(list(polymer.get_building_blocks())) == number_of_fragement:
         for molecule_bb in polymer.get_building_blocks():
             dat_list = list(molecule_bb.get_atomic_positions())
             positions = np.vstack(dat_list)
-            positions = torch.tensor(positions, dtype=torch.float)
+            positions = torch.tensor(positions, dtype=torch.float, device=device)
             atom_types = list(
                 [atom.get_atomic_number() for atom in molecule_bb.get_atoms()]
             )
-            atom_types = torch.tensor(atom_types, dtype=torch.long)
+            atom_types = torch.tensor(atom_types, dtype=torch.long, device=device)
             molecule_frag = Data(
                 x=atom_types,
                 positions=positions,
+                device=device,
             )
             frags.append(molecule_frag)
         
         with torch.no_grad():
             model.eval()
-            batch = Batch.from_data_list(frags)
+            batch = Batch.from_data_list(frags).to(device)
             original_encoding = model(batch.x, batch.positions, batch.batch)
             original_encoding = original_encoding.reshape((-1,))
             original_encoding = original_encoding.unsqueeze(0)
