@@ -1,0 +1,123 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.5
+    cli_version: 0.16.0
+    framework: huggingface
+    huggingface_version: 4.35.2
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    start_time: 1700837978.951047
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 77
+      2:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 77
+      3:
+      - 2
+      - 23
+      4: 3.11.5
+      5: 0.16.0
+      6: 4.35.2
+      8:
+      - 1
+      - 5
+      13: linux-x86_64
+STK_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/STK_path/
+batch_size:
+  desc: null
+  value: 128
+database_name:
+  desc: null
+  value: stk_cyprien
+df_precursor:
+  desc: null
+  value: calculation_data_precursor_071123_clean.pkl
+df_total:
+  desc: null
+  value: df_total_subset_16_11_23.csv
+emb_dim:
+  desc: null
+  value: 128
+max_epochs:
+  desc: null
+  value: 2
+model:
+  desc: null
+  value:
+    SchNet_cutoff: 10
+    SchNet_num_filters: 128
+    SchNet_num_gaussians: 51
+    SchNet_num_interactions: 6
+    SchNet_readout: mean
+    edge_class: 5
+    emb_dim: 128
+    node_class: 119
+    num_tasks: 1
+model_path:
+  desc: null
+  value: ''
+name:
+  desc: null
+  value: SchNet_target_1K_TEST_5e4lr
+num_molecules:
+  desc: null
+  value: 1000
+num_tasks:
+  desc: null
+  value: 1
+num_workers:
+  desc: null
+  value: 0
+number_of_fragement:
+  desc: null
+  value: 6
+pl_model_chkpt:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/SchNet_target_80K_TEST_5e4lr/epoch=91-val_loss=0.56-other_metric=0.00.ckpt
+pymongo_client:
+  desc: null
+  value: mongodb://129.31.66.201/
+running_dir:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training
+save_dataset:
+  desc: null
+  value: true
+seed:
+  desc: null
+  value: 42
+train_ratio:
+  desc: null
+  value: 0.8
+valid_ratio:
+  desc: null
+  value: 0.1
+load_dataset:
+  desc: null
+  value: true
+dataset_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset.pt
+dataset_path_frag:
+  desc: null
+  value: ''
+device:
+  desc: null
+  value: cuda
