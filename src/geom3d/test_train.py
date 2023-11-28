@@ -49,14 +49,12 @@ def main(config_dir):
     graph_pred_linear = torch.nn.Linear(
         model_config["emb_dim"], model_config["num_tasks"]
     )
-    if config["model_path"]:
-        model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
     wandb.login()
     # model
     #check if chkpt exists
-    if os.path.exists(config["pl_model_chkpt"]):
-        pymodel_SCHNET = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
+    if os.path.exists(config["model_embedding_chkpt"]):
+        pymodel_SCHNET = Pymodel.load_from_checkpoint(config["model_embedding_chkpt"])
     else:
         pymodel_SCHNET = Pymodel(model, graph_pred_linear)
     wandb_logger = WandbLogger(log_model="all", project="Geom3D", name=config["name"])

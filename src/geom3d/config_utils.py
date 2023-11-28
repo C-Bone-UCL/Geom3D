@@ -37,8 +37,8 @@ def read_config(dir):
         config['train_ratio'] = 0.8
         config['valid_ratio'] = 0.1
         config['number_of_fragement'] = 6
-        config["model_path"] = ""
-        config["pl_model_chkpt"] = ""
+        config["model_embedding_chkpt"] = ""
+        config["model_VAE_chkpt"] = ""
         config["load_dataset"] = False
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""

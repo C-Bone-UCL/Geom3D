@@ -23,6 +23,7 @@ from geom3d import Database_utils
 from pathlib import Path
 from geom3d.config_utils import read_config
 from geom3d.test_train import Pymodel
+from lightning.pytorch.callbacks import LearningRateMonitor
 
 def main(config_dir):
     config = read_config(config_dir)
@@ -40,9 +41,12 @@ def main(config_dir):
     )
     wandb.login()
     # model
-    EncodingModel = FragEncoding(
-        config["emb_dim"], config["number_of_fragement"]
-    )
+    if os.path.exists(config["model_VAE_chkpt"]):
+        EncodingModel = FragEncoding.load_from_checkpoint(config["model_VAE_chkpt"])
+    else:
+        EncodingModel = FragEncoding(
+            config["emb_dim"], config["number_of_fragement"]
+        )
     name = config["name"] + "_frag_" + str(config["number_of_fragement"])
     wandb_logger = WandbLogger(
         log_model="all", project="Geom3D_fragencoding", name=name
@@ -56,13 +60,13 @@ def main(config_dir):
         monitor="val_loss",
         mode="min",
     )
-
+    lr_monitor = LearningRateMonitor(logging_interval='step')
     trainer = pl.Trainer(
         logger=wandb_logger,
         max_epochs=config["max_epochs"],
         val_check_interval=1.0,
         log_every_n_steps=1,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, lr_monitor],
     )
     trainer.fit(
         model=EncodingModel,
@@ -77,30 +81,39 @@ class FragEncoding(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.encoder = nn.Sequential(
-            nn.Linear(num_fragment * embedding_dim, embedding_dim * 2),
+            nn.Linear(num_fragment * embedding_dim, embedding_dim * 3),
+            nn.ReLU(),
+            nn.Linear(embedding_dim * 3, embedding_dim * 2),
             nn.ReLU(),
             nn.Linear(embedding_dim * 2, embedding_dim),
         )
         self.decoder = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim * 2),
             nn.ReLU(),
-            nn.Linear(embedding_dim * 2, num_fragment * embedding_dim),
+            nn.Linear(embedding_dim * 2, embedding_dim * 3),
+            nn.ReLU(),
+            nn.Linear(embedding_dim * 3, num_fragment * embedding_dim),
         )
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
-        loss = self._get_preds_loss_accuracy(batch)
+        lossvae, loss_encoder = self._get_preds_loss_accuracy(batch)
 
-        self.log("train_loss", loss)
-        return loss
+        # Log loss and metric
+        self.log("train_loss_vae", lossvae)
+        self.log("train_loss_encoder", loss_encoder)
+        self.log("train_loss", lossvae+loss_encoder)
+        return loss_encoder 
 
     def validation_step(self, batch, batch_idx):
         """used for logging metrics"""
-        loss = self._get_preds_loss_accuracy(batch)
+        lossvae, loss_encoder = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
-        self.log("val_loss", loss)
-        return loss
+        self.log("val_loss_vae", lossvae)
+        self.log("val_loss_encoder", loss_encoder)
+        self.log("val_loss", lossvae+loss_encoder)
+        return loss_encoder 
 
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
@@ -108,12 +121,18 @@ class FragEncoding(pl.LightningModule):
         #x = x.view(x.size(0), -1)
         y_pred = self.encoder(x)
         z = self.decoder(y_pred)
-        loss = Functional.mse_loss(z, x) + Functional.mse_loss(y, y_pred)
-        return loss
+        loss_encoder = Functional.mse_loss(y, y_pred)
+        lossvae = Functional.mse_loss(z, x)
+        #loss = Functional.mse_loss(z, x) + Functional.mse_loss(y, y_pred)
+        return lossvae, loss_encoder
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+           # optimizer, self.epochs
+        #)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+        return [optimizer], [lr_scheduler]
 
 
 def load_data(config):
@@ -140,8 +159,8 @@ def load_data(config):
         database=config["database_name"],
     )
     # check if model is in the path
-    if os.path.exists(config["pl_model_chkpt"]):
-        pymodel = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
+    if os.path.exists(config["model_embedding_chkpt"]):
+        pymodel = Pymodel.load_from_checkpoint(config["model_embedding_chkpt"])
         pymodel.freeze()
         pymodel.to(config["device"])
         model = pymodel.molecule_3D_repr

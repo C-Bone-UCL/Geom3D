@@ -1,5 +1,5 @@
 {
-    "STK_path": "/home/ma11115/STK_search/",
+    "STK_path": "C:/Users/ma11115/OneDrive - Imperial College London/github_folder/STK_search",
     "batch_size": 128,
     "database_name": "stk_mohammed_BO",
     "df_precursor": "calculation_data_precursor_310823_clean.pkl",
@@ -17,15 +17,16 @@
         "node_class": 119,
         "num_tasks": 1
     },
-    "model_path": "",
+    "model_path": "C:/Users/ma11115/OneDrive - Imperial College London/Geom3d/Geom3D/training/test/output_model.pth",
     "name": "SchNet_target_1K_TEST_5e4lr",
     "num_molecules": 100,
     "num_tasks": 1,
     "num_workers": 0,
     "number_of_fragement": 6,
+    "pl_model_chkpt": "C:/Users/ma11115/OneDrive - Imperial College London/Geom3d/Geom3D/training/SchNet_target_1K_test_5e4lr/epoch=223-val_loss=0.37-other_metric=0.00.ckpt",
     "pymongo_client": "mongodb://129.31.66.201/",
-    "running_dir": "/home/ma11115/Geom3D/training",
-    "save_dataset": false,
+    "running_dir": "C:/Users/ma11115/OneDrive - Imperial College London/Geom3d/Geom3D/training",
+    "save_dataset": true,
     "seed": 42,
     "train_ratio": 0.8,
     "valid_ratio": 0.1
