@@ -24,6 +24,8 @@ from pathlib import Path
 from geom3d.config_utils import read_config
 from geom3d.test_train import Pymodel
 from lightning.pytorch.callbacks import LearningRateMonitor
+from geom3d.transfomer_utils import TransformerPredictor
+
 
 def main(config_dir):
     config = read_config(config_dir)
@@ -33,21 +35,33 @@ def main(config_dir):
     config["device"] = (
         "cuda" if torch.cuda.is_available() else torch.device("cpu")
     )
-    #model_config = config["model"]
+    # model_config = config["model"]
 
     dataset = load_data(config)
     train_loader, val_loader, test_loader = train_val_test_split(
         dataset, config=config
     )
     wandb.login()
+
+    # model = model.to(device)
+
     # model
-    if os.path.exists(config["model_VAE_chkpt"]):
-        EncodingModel = FragEncoding.load_from_checkpoint(config["model_VAE_chkpt"])
-    else:
-        EncodingModel = FragEncoding(
-            config["emb_dim"], config["number_of_fragement"]
+    if os.path.exists(config["model_transformer_chkpt"]):
+        EncodingModel = Fragment_encoder.load_from_checkpoint(
+            config["model_transformer_chkpt"]
         )
-    name = config["name"] + "_frag_" + str(config["number_of_fragement"])
+    else:
+        EncodingModel = Fragment_encoder(
+            input_dim=train_loader.dataset[0].x.shape[1],
+            model_dim=config["emb_dim"],
+            num_heads=1,
+            num_classes=train_loader.dataset[0].y.shape[1],
+            num_layers=1,
+            dropout=0.0,
+            lr=5e-4,
+            warmup=50,
+        )
+    name = config["name"] + "_frag_transf_" + str(config["number_of_fragement"])
     wandb_logger = WandbLogger(
         log_model="all", project="Geom3D_fragencoding", name=name
     )
@@ -60,7 +74,7 @@ def main(config_dir):
         monitor="val_loss",
         mode="min",
     )
-    lr_monitor = LearningRateMonitor(logging_interval='step')
+    lr_monitor = LearningRateMonitor(logging_interval="step")
     trainer = pl.Trainer(
         logger=wandb_logger,
         max_epochs=config["max_epochs"],
@@ -76,63 +90,32 @@ def main(config_dir):
     wandb.finish()
 
 
-class FragEncoding(pl.LightningModule):
-    def __init__(self, embedding_dim=128, num_fragment=6):
-        super().__init__()
-        self.save_hyperparameters()
-        self.encoder = nn.Sequential(
-            nn.Linear(num_fragment * embedding_dim, embedding_dim * 3),
-            nn.ReLU(),
-            nn.Linear(embedding_dim * 3, embedding_dim * 2),
-            nn.ReLU(),
-            nn.Linear(embedding_dim * 2, embedding_dim),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim * 2),
-            nn.ReLU(),
-            nn.Linear(embedding_dim * 2, embedding_dim * 3),
-            nn.ReLU(),
-            nn.Linear(embedding_dim * 3, num_fragment * embedding_dim),
-        )
+class Fragment_encoder(TransformerPredictor):
+    def _calculate_loss(self, batch, mode="train"):
+        # Fetch data and transform categories to one-hot vectors
+        inp_data, labels = batch.x.squeeze(), batch.y.squeeze()
+
+        # inp_data = F.one_hot(inp_data, num_classes=self.hparams.num_classes).float()
+
+        # Perform prediction and calculate loss and accuracy
+        preds = self.forward(inp_data, add_positional_encoding=True)
+        loss = Functional.mse_loss(preds.view(-1, preds.size(-1)), labels)
+        acc = (preds.argmax(dim=-1) == labels).float().mean()
+
+        # Logging
+        self.log("%s_loss" % mode, loss)
+        self.log("%s_acc" % mode, acc)
+        return loss, acc
 
     def training_step(self, batch, batch_idx):
-        # training_step defines the train loop.
-        lossvae, loss_encoder = self._get_preds_loss_accuracy(batch)
-
-        # Log loss and metric
-        self.log("train_loss_vae", lossvae)
-        self.log("train_loss_encoder", loss_encoder)
-        self.log("train_loss", lossvae+loss_encoder)
-        return loss_encoder 
+        loss, _ = self._calculate_loss(batch, mode="train")
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        """used for logging metrics"""
-        lossvae, loss_encoder = self._get_preds_loss_accuracy(batch)
+        _ = self._calculate_loss(batch, mode="val")
 
-        # Log loss and metric
-        self.log("val_loss_vae", lossvae)
-        self.log("val_loss_encoder", loss_encoder)
-        self.log("val_loss", lossvae+loss_encoder)
-        return loss_encoder 
-
-    def _get_preds_loss_accuracy(self, batch):
-        """convenience function since train/valid/test steps are similar"""
-        x, y = batch.x, batch.y
-        #x = x.view(x.size(0), -1)
-        y_pred = self.encoder(x)
-        z = self.decoder(y_pred)
-        loss_encoder = Functional.mse_loss(y, y_pred)
-        lossvae = Functional.mse_loss(z, x)
-        #loss = Functional.mse_loss(z, x) + Functional.mse_loss(y, y_pred)
-        return lossvae, loss_encoder
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-        #lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-           # optimizer, self.epochs
-        #)
-        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
-        return [optimizer], [lr_scheduler]
+    def test_step(self, batch, batch_idx):
+        _ = self._calculate_loss(batch, mode="test")
 
 
 def load_data(config):
@@ -172,9 +155,11 @@ def load_data(config):
             number_of_fragement=config["number_of_fragement"],
         )
         if config["save_dataset"]:
-            name = config["name"] + "_frag_" + str(config["number_of_fragement"])
+            name = (
+                config["name"] + "_frag_" + str(config["number_of_fragement"])
+            )
             os.makedirs(name, exist_ok=True)
-            torch.save(dataset, name+"/dataset_frag.pt")
+            torch.save(dataset, name + "/dataset_frag.pt")
         return dataset
     else:
         print("model not found")
@@ -205,9 +190,7 @@ def generate_dataset_frag(
 
 
 def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
-    device = (
-        "cuda" if torch.cuda.is_available() else torch.device("cpu")
-    )
+    device = "cuda" if torch.cuda.is_available() else torch.device("cpu")
     polymer = db_poly.get({"InChIKey": InChIKey})
     frags = []
     dat_list = list(polymer.get_atomic_positions())
@@ -219,25 +202,29 @@ def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
             for atom in polymer.get_atom_infos()
         ]
     )
-    
+
     atom_types = torch.tensor(atom_types, dtype=torch.long, device=device)
     molecule = Data(x=atom_types, positions=positions, device=device)
     if len(list(polymer.get_building_blocks())) == number_of_fragement:
         for molecule_bb in polymer.get_building_blocks():
             dat_list = list(molecule_bb.get_atomic_positions())
             positions = np.vstack(dat_list)
-            positions = torch.tensor(positions, dtype=torch.float, device=device)
+            positions = torch.tensor(
+                positions, dtype=torch.float, device=device
+            )
             atom_types = list(
                 [atom.get_atomic_number() for atom in molecule_bb.get_atoms()]
             )
-            atom_types = torch.tensor(atom_types, dtype=torch.long, device=device)
+            atom_types = torch.tensor(
+                atom_types, dtype=torch.long, device=device
+            )
             molecule_frag = Data(
                 x=atom_types,
                 positions=positions,
                 device=device,
             )
             frags.append(molecule_frag)
-        
+
         with torch.no_grad():
             model.eval()
             batch = Batch.from_data_list(frags).to(device)
@@ -245,7 +232,9 @@ def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
             original_encoding = original_encoding.reshape((-1,))
             original_encoding = original_encoding.unsqueeze(0)
             opt_geom_encoding = model(molecule.x, molecule.positions)
-        return Data(x=original_encoding, y=opt_geom_encoding, InChIKey=InChIKey)
+        return Data(
+            x=original_encoding, y=opt_geom_encoding, InChIKey=InChIKey
+        )
 
 
 def train_val_test_split(dataset, config, smiles_list=None):
@@ -296,7 +285,7 @@ def train_val_test_split(dataset, config, smiles_list=None):
         num_workers=config["num_workers"],
         drop_last=True,
     )
-    
+
     if not smiles_list:
         return train_loader, val_loader, test_loader
     else:
