@@ -55,3 +55,4 @@ MANIFEST
 .python-version
 *.pt
 *.ckpt
+*.ipynb
