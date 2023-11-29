@@ -24,7 +24,7 @@ from pathlib import Path
 from geom3d.config_utils import read_config
 from geom3d.test_train import Pymodel
 from lightning.pytorch.callbacks import LearningRateMonitor
-from geom3d.transfomer_utils import TransformerPredictor
+from geom3d.transformer_utils import TransformerPredictor
 
 
 def main(config_dir):
