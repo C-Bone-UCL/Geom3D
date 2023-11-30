@@ -1,8 +1,14 @@
 """
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 script to train the SchNet model on the STK dataset
 created by Mohammed Azzouzi
 date: 2023-11-14
+=======
+script to train the DimeNet model on the STK dataset
+created by Cyprien Bone
+date: 2023-11-27
+>>>>>>> Stashed changes
 =======
 script to train the DimeNet model on the STK dataset
 created by Cyprien Bone
@@ -14,6 +20,10 @@ import pymongo
 import numpy as np
 import os
 import pandas as pd
+<<<<<<< Updated upstream
+=======
+import time
+>>>>>>> Stashed changes
 import wandb
 import torch.nn as nn
 import torch.optim as optim
@@ -33,6 +43,11 @@ from geom3d.utils.config_utils import read_config
 
 
 def main(config_dir):
+<<<<<<< Updated upstream
+=======
+    start_time = time.time()
+
+>>>>>>> Stashed changes
     config = read_config(config_dir)
     np.random.seed(config["seed"])
     torch.cuda.manual_seed_all(config["seed"])
@@ -44,7 +59,11 @@ def main(config_dir):
         dataset, config=config
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     model_config = config["DimeNet_model"]
+=======
+    model_config = config["model"]
+>>>>>>> Stashed changes
 =======
     model_config = config["model"]
 >>>>>>> Stashed changes
@@ -62,6 +81,7 @@ def main(config_dir):
         num_after_skip=model_config["num_after_skip"],
         num_output_layers=model_config["num_output_layers"],
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         act=model_config["act"],
     )
     graph_pred_linear = torch.nn.Linear(
@@ -72,10 +92,16 @@ def main(config_dir):
     graph_pred_linear = None
 
 >>>>>>> Stashed changes
+=======
+    )
+    graph_pred_linear = None
+
+>>>>>>> Stashed changes
     if config["model_path"]:
         model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
     wandb.login()
+<<<<<<< Updated upstream
     # model
     #check if chkpt exists
     if os.path.exists(config["pl_model_chkpt"]):
@@ -84,6 +110,15 @@ def main(config_dir):
     else:
         pymodel_SCHNET = Pymodel(model, graph_pred_linear)
 =======
+        pymodel_check = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
+    else:
+        pymodel_check = Pymodel(model, graph_pred_linear)
+>>>>>>> Stashed changes
+=======
+    wandb.init(settings=wandb.Settings(start_method="fork"))
+    # model
+    #check if chkpt exists
+    if os.path.exists(config["pl_model_chkpt"]):
         pymodel_check = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
     else:
         pymodel_check = Pymodel(model, graph_pred_linear)
@@ -108,7 +143,11 @@ def main(config_dir):
     )
     trainer.fit(
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         model=pymodel_SCHNET,
+=======
+        model=pymodel_check,
+>>>>>>> Stashed changes
 =======
         model=pymodel_check,
 >>>>>>> Stashed changes
@@ -117,6 +156,13 @@ def main(config_dir):
     )
     wandb.finish()
 
+<<<<<<< Updated upstream
+=======
+    end_time = time.time()  # Record the end time
+    total_time = end_time - start_time
+    print(f"Total time taken for model training: {total_time} seconds")
+
+>>>>>>> Stashed changes
     # load dataframe with calculated data
 
 
@@ -127,15 +173,22 @@ class Pymodel(pl.LightningModule):
         self.molecule_3D_repr = model
         self.graph_pred_linear = graph_pred_linear
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
         print("Value of self.graph_pred_linear:", self.graph_pred_linear)
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         loss = self._get_preds_loss_accuracy(batch)
 
+<<<<<<< Updated upstream
         self.log("train_loss", loss)
+=======
+        self.log("train_loss", loss, batch_size=batch.size(0))
+>>>>>>> Stashed changes
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -143,15 +196,25 @@ class Pymodel(pl.LightningModule):
         loss = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
+<<<<<<< Updated upstream
         self.log("val_loss", loss)
+=======
+        self.log("val_loss", loss, batch_size=batch.size(0))
+>>>>>>> Stashed changes
         return loss
 
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
         z = self.graph_pred_linear(z)
         loss = Functional.mse_loss(z, batch.y.unsqueeze(1))
+=======
+        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
+        # z = self.graph_pred_linear(z)
+        loss = Functional.mse_loss(z, batch.y) # removed the .unsqueeze(1) from batch.y
+>>>>>>> Stashed changes
 =======
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         # z = self.graph_pred_linear(z)
@@ -165,8 +228,13 @@ class Pymodel(pl.LightningModule):
     
     def forward(self, batch):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
         z = self.graph_pred_linear(z)
+=======
+        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
+        # z = self.molecule_3D_repr(z)
+>>>>>>> Stashed changes
 =======
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         # z = self.molecule_3D_repr(z)
@@ -185,5 +253,9 @@ if __name__ == "__main__":
         help="directory to config.json",
     )
     args = argparser.parse_args()
+<<<<<<< Updated upstream
     config_dir = root + args.config_dir
+=======
+    config_dir = args.config_dir
+>>>>>>> Stashed changes
     main(config_dir=config_dir)

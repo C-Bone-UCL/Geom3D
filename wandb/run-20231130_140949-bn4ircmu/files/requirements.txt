@@ -51,15 +51,7 @@ jupyterlab-widgets==3.0.9
 kiwisolver==1.4.5
 lie-learn==0.0.1.post1
 lightning-utilities==0.10.0
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-lightning==2.1.2
-=======
 lightning==2.1.1
->>>>>>> Stashed changes
-=======
-lightning==2.1.1
->>>>>>> Stashed changes
 linear-operator==0.5.1
 littleutils==0.2.2
 lmdb==1.4.1

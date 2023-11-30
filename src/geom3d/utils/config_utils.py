@@ -14,7 +14,11 @@ def read_config(dir):
         config["name"] = "SchNet_target_1K_TEST_5e4lr"
         config["pymongo_client"] = "mongodb://129.31.66.201/"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         config["database_name"] = "stk_cyprien_BO"
+=======
+        config["database_name"] = "stk_mohammed_BO"
+>>>>>>> Stashed changes
 =======
         config["database_name"] = "stk_mohammed_BO"
 >>>>>>> Stashed changes
@@ -37,6 +41,7 @@ def read_config(dir):
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         config["SchNet_model"] = dict()
         config["SchNet_model"]["node_class"] = 119
@@ -64,6 +69,8 @@ def read_config(dir):
         config["DimeNet_model"]["num_output_layers"] = 3
         config["DimeNet_model"]["act"] = "swish"
 =======
+=======
+>>>>>>> Stashed changes
         # prompt the user to enter model name
         config["model_name"] = input("Enter model name: ") 
 
@@ -93,6 +100,9 @@ def read_config(dir):
             config["model"]["num_before_skip"] = 1
             config["model"]["num_after_skip"] = 2
             config["model"]["num_output_layers"] = 3
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
         save_config(config, dir)

@@ -1,13 +1,8 @@
 {
     "os": "Linux-4.18.0-348.20.1.el8_5.x86_64-x86_64-with-glibc2.28",
     "python": "3.11.5",
-<<<<<<< Updated upstream
-    "heartbeatAt": "2023-11-27T13:43:21.562863",
-    "startedAt": "2023-11-27T13:43:20.981691",
-=======
-    "heartbeatAt": "2023-11-30T14:44:29.695336",
-    "startedAt": "2023-11-30T14:44:28.132622",
->>>>>>> Stashed changes
+    "heartbeatAt": "2023-11-30T14:22:11.805692",
+    "startedAt": "2023-11-30T14:22:10.990669",
     "docker": null,
     "cuda": null,
     "args": [],
@@ -26,36 +21,12 @@
     "cpu_count": 16,
     "cpu_count_logical": 32,
     "cpu_freq": {
-<<<<<<< Updated upstream
-        "current": 2148.2650000000003,
-=======
-        "current": 2039.41184375,
->>>>>>> Stashed changes
+        "current": 2176.82975,
         "min": 800.0,
         "max": 3000.0
     },
     "cpu_freq_per_core": [
         {
-<<<<<<< Updated upstream
-            "current": 2100.0,
-=======
-            "current": 1630.744,
->>>>>>> Stashed changes
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-<<<<<<< Updated upstream
             "current": 2100.0,
             "min": 800.0,
             "max": 3000.0
@@ -67,19 +38,6 @@
         },
         {
             "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2753.607,
-=======
-            "current": 2730.434,
->>>>>>> Stashed changes
             "min": 800.0,
             "max": 3000.0
         },
@@ -109,7 +67,21 @@
             "max": 3000.0
         },
         {
-<<<<<<< Updated upstream
+            "current": 2149.894,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2162.108,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
             "current": 2100.0,
             "min": 800.0,
             "max": 3000.0
@@ -120,10 +92,27 @@
             "max": 3000.0
         },
         {
-            "current": 2990.873,
-=======
-            "current": 1299.999,
->>>>>>> Stashed changes
+            "current": 2399.996,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2897.131,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2902.982,
             "min": 800.0,
             "max": 3000.0
         },
@@ -196,59 +185,12 @@
             "current": 2100.0,
             "min": 800.0,
             "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-<<<<<<< Updated upstream
-=======
-        },
-        {
-            "current": 2400.003,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 1300.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 1299.999,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
-        },
-        {
-            "current": 2100.0,
-            "min": 800.0,
-            "max": 3000.0
->>>>>>> Stashed changes
         }
     ],
     "disk": {
         "/": {
             "total": 195.2215690612793,
-<<<<<<< Updated upstream
-            "used": 14.503219604492188
-=======
-            "used": 14.511688232421875
->>>>>>> Stashed changes
+            "used": 14.51120376586914
         }
     },
     "gpu": "Quadro RTX 6000",

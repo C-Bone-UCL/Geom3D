@@ -10,9 +10,13 @@ _wandb:
     is_jupyter_run: true
     is_kaggle_kernel: false
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     start_time: 1701092601.018679
 =======
     start_time: 1701191494.718955
+>>>>>>> Stashed changes
+=======
+    start_time: 1701355468.190156
 >>>>>>> Stashed changes
     t:
       1:
@@ -34,6 +38,11 @@ _wandb:
       3:
       - 2
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+      - 7
+      - 13
+>>>>>>> Stashed changes
 =======
       - 7
       - 13
@@ -46,6 +55,7 @@ _wandb:
       - 1
       - 5
       13: linux-x86_64
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 DimeNet_model:
   desc: null
@@ -91,6 +101,8 @@ dataset_path_frag:
   desc: null
   value: ''
 =======
+=======
+>>>>>>> Stashed changes
     m:
     - 1: trainer/global_step
       6:
@@ -112,7 +124,14 @@ STK_path:
   value: /rds/general/user/cb1319/home/GEOM3D/STK_path/
 batch_size:
   desc: null
+<<<<<<< Updated upstream
   value: 64
+database_name:
+  desc: null
+  value: stk_mohammed_BO
+>>>>>>> Stashed changes
+=======
+  value: 32
 database_name:
   desc: null
   value: stk_mohammed_BO
@@ -127,6 +146,7 @@ emb_dim:
   desc: null
   value: 128
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 load_dataset:
   desc: null
   value: true
@@ -134,12 +154,17 @@ max_epochs:
   desc: null
   value: 3
 =======
+=======
+>>>>>>> Stashed changes
 max_epochs:
   desc: null
   value: 5
 model_name:
   desc: null
   value: DimeNet
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 model_path:
   desc: null
@@ -147,12 +172,19 @@ model_path:
 name:
   desc: null
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   value: SchNet_target_1K_TEST_5e4lr
 num_molecules:
   desc: null
   value: 1000
 =======
   value: DimeNetPlusPlus_target_1K_TEST_5e4lr
+num_molecules:
+  desc: null
+  value: 500
+>>>>>>> Stashed changes
+=======
+  value: DimeNet_target_1K_TEST_5e4lr
 num_molecules:
   desc: null
   value: 500
@@ -169,7 +201,11 @@ number_of_fragement:
 pl_model_chkpt:
   desc: null
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/SchNet_target_1K_TEST_5e4lr/epoch=86-val_loss=0.54-other_metric===.00.ckpt
+=======
+  value: ''
+>>>>>>> Stashed changes
 =======
   value: ''
 >>>>>>> Stashed changes
@@ -179,7 +215,11 @@ pymongo_client:
 running_dir:
   desc: null
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training
+=======
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/
+>>>>>>> Stashed changes
 =======
   value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/
 >>>>>>> Stashed changes
@@ -195,6 +235,7 @@ train_ratio:
 valid_ratio:
   desc: null
   value: 0.1
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 device:
   desc: null
@@ -212,12 +253,18 @@ model:
     node_class: 119
     num_tasks: 1
 =======
+=======
+>>>>>>> Stashed changes
 load_dataset:
   desc: null
   value: true
 dataset_path:
   desc: null
+<<<<<<< Updated upstream
   value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset.pt
+=======
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/DimeNetPlusPlus_target_1K_TEST_5e4lr/500dataset.pt
+>>>>>>> Stashed changes
 dataset_path_frag:
   desc: null
   value: ''
@@ -225,6 +272,7 @@ model:
   desc: null
   value:
     node_class: 119
+<<<<<<< Updated upstream
     hidden_channels: 30
     out_channels: 1
     num_blocks: 4
@@ -234,6 +282,15 @@ model:
     num_spherical: 7
     num_radial: 6
     cutoff: 5.0
+=======
+    hidden_channels: 20
+    out_channels: 1
+    num_blocks: 6
+    num_bilinear: 8
+    num_spherical: 7
+    num_radial: 6
+    cutoff: 3.0
+>>>>>>> Stashed changes
     envelope_exponent: 5
     num_before_skip: 1
     num_after_skip: 2
@@ -241,4 +298,7 @@ model:
 device:
   desc: null
   value: cuda
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes

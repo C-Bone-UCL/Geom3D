@@ -8,6 +8,10 @@ import pymongo
 import numpy as np
 import os
 import pandas as pd
+<<<<<<< Updated upstream
+=======
+import time
+>>>>>>> Stashed changes
 import wandb
 import torch.nn as nn
 import torch.optim as optim
@@ -27,6 +31,11 @@ from geom3d.utils.config_utils import read_config
 
 
 def main(config_dir):
+<<<<<<< Updated upstream
+=======
+    start_time = time.time()
+
+>>>>>>> Stashed changes
     config = read_config(config_dir)
     np.random.seed(config["seed"])
     torch.cuda.manual_seed_all(config["seed"])
@@ -54,6 +63,10 @@ def main(config_dir):
         model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
     wandb.login()
+<<<<<<< Updated upstream
+=======
+    wandb.init(settings=wandb.Settings(start_method="fork"))
+>>>>>>> Stashed changes
     # model
     #check if chkpt exists
     if os.path.exists(config["pl_model_chkpt"]):
@@ -85,6 +98,13 @@ def main(config_dir):
     )
     wandb.finish()
 
+<<<<<<< Updated upstream
+=======
+    end_time = time.time()  # Record the end time
+    total_time = end_time - start_time
+    print(f"Total time taken for model training: {total_time} seconds")
+    
+>>>>>>> Stashed changes
     # load dataframe with calculated data
 
 
@@ -99,7 +119,11 @@ class Pymodel(pl.LightningModule):
         # training_step defines the train loop.
         loss = self._get_preds_loss_accuracy(batch)
 
+<<<<<<< Updated upstream
         self.log("train_loss", loss)
+=======
+        self.log("train_loss", loss, batch_size=batch.size(0))
+>>>>>>> Stashed changes
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -107,7 +131,11 @@ class Pymodel(pl.LightningModule):
         loss = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
+<<<<<<< Updated upstream
         self.log("val_loss", loss)
+=======
+        self.log("val_loss", loss, batch_size=batch.size(0))
+>>>>>>> Stashed changes
         return loss
 
     def _get_preds_loss_accuracy(self, batch):
@@ -138,5 +166,9 @@ if __name__ == "__main__":
         help="directory to config.json",
     )
     args = argparser.parse_args()
+<<<<<<< Updated upstream
     config_dir = root + args.config_dir
+=======
+    config_dir = args.config_dir
+>>>>>>> Stashed changes
     main(config_dir=config_dir)

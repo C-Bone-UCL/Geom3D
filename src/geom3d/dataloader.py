@@ -50,11 +50,14 @@ def load_data(config):
         number_of_molecules=config["num_molecules"],
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     if config["save_dataset"]:
         name = config["name"] + "_frag_" + str(config["number_of_fragement"])
         os.makedirs(name, exist_ok=True)
         torch.save(dataset, name+"/dataset.pt")
 =======
+=======
+>>>>>>> Stashed changes
 
     print(f"length of dataset: {len(dataset)}")
 
@@ -62,8 +65,13 @@ def load_data(config):
     if config["save_dataset"]:
         name = config["name"] 
         os.makedirs(name, exist_ok=True)
+<<<<<<< Updated upstream
         torch.save(dataset, name+"/dataset.pt")
         print(f"dataset saved to {name} /dataset.pt")
+>>>>>>> Stashed changes
+=======
+        torch.save(dataset, "training/"+name+f"/{len(dataset)}dataset.pt")
+        print(f"dataset saved to {name}/{len(dataset)}dataset.pt")
 >>>>>>> Stashed changes
     return dataset
 
@@ -72,6 +80,7 @@ def load_3d_rpr(model, output_model_path):
     saved_model_dict = torch.load(output_model_path)
     model.load_state_dict(saved_model_dict["model"])
     model.eval()
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     return model
 
@@ -103,11 +112,16 @@ def load_3d_rpr(model, output_model_path):
 
 
 =======
+=======
+>>>>>>> Stashed changes
     # check if the function has performed correctly
     print(model)
     return model
 
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 def load_molecule(InChIKey, target, db):
     polymer = None
