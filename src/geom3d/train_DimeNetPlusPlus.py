@@ -1,13 +1,7 @@
 """
-<<<<<<< Updated upstream
-script to train the SchNet model on the STK dataset
-created by Mohammed Azzouzi
-date: 2023-11-14
-=======
 script to train the DimeNet model on the STK dataset
 created by Cyprien Bone
 date: 2023-11-27
->>>>>>> Stashed changes
 """
 import stk
 import pymongo
@@ -25,9 +19,12 @@ import lightning.pytorch as pl
 import torch.nn.functional as Functional
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
+import sympy as sym
+from torch.nn import Embedding, Linear
+from torch_geometric.nn import radius_graph
 from pathlib import Path
 from geom3d.dataloader import load_data, train_val_test_split, load_3d_rpr, generate_dataset, load_molecule
-from geom3d.models import DimeNet
+from geom3d.models import DimeNetPlusPlus
 from geom3d.utils import database_utils
 from geom3d.utils.config_utils import read_config
 
@@ -43,17 +40,15 @@ def main(config_dir):
     train_loader, val_loader, test_loader = train_val_test_split(
         dataset, config=config
     )
-<<<<<<< Updated upstream
-    model_config = config["DimeNet_model"]
-=======
     model_config = config["model"]
->>>>>>> Stashed changes
-    model = DimeNet(
+    model = DimeNetPlusPlus(
         node_class=model_config["node_class"],
         hidden_channels=model_config["hidden_channels"],
         out_channels=model_config["out_channels"],
         num_blocks=model_config["num_blocks"],
-        num_bilinear=model_config["num_bilinear"],
+        int_emb_size=model_config["int_emb_size"],
+        basis_emb_size=model_config["basis_emb_size"],
+        out_emb_channels=model_config["out_emb_channels"],
         num_spherical=model_config["num_spherical"],
         num_radial=model_config["num_radial"],
         cutoff=model_config["cutoff"],
@@ -61,17 +56,9 @@ def main(config_dir):
         num_before_skip=model_config["num_before_skip"],
         num_after_skip=model_config["num_after_skip"],
         num_output_layers=model_config["num_output_layers"],
-<<<<<<< Updated upstream
-        act=model_config["act"],
-    )
-    graph_pred_linear = torch.nn.Linear(
-        model_config["emb_dim"], model_config["num_tasks"]
-    )
-=======
     )
     graph_pred_linear = None
 
->>>>>>> Stashed changes
     if config["model_path"]:
         model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
@@ -79,15 +66,9 @@ def main(config_dir):
     # model
     #check if chkpt exists
     if os.path.exists(config["pl_model_chkpt"]):
-<<<<<<< Updated upstream
-        pymodel_SCHNET = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
-    else:
-        pymodel_SCHNET = Pymodel(model, graph_pred_linear)
-=======
         pymodel_check = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
     else:
         pymodel_check = Pymodel(model, graph_pred_linear)
->>>>>>> Stashed changes
     wandb_logger = WandbLogger(log_model="all", project="Geom3D", name=config["name"])
     wandb_logger.log_hyperparams(config)
 
@@ -107,11 +88,7 @@ def main(config_dir):
         callbacks=[checkpoint_callback],
     )
     trainer.fit(
-<<<<<<< Updated upstream
-        model=pymodel_SCHNET,
-=======
         model=pymodel_check,
->>>>>>> Stashed changes
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
@@ -126,10 +103,7 @@ class Pymodel(pl.LightningModule):
         self.save_hyperparameters(ignore=['graph_pred_linear', 'model'])
         self.molecule_3D_repr = model
         self.graph_pred_linear = graph_pred_linear
-<<<<<<< Updated upstream
-=======
         print("Value of self.graph_pred_linear:", self.graph_pred_linear)
->>>>>>> Stashed changes
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
@@ -148,15 +122,9 @@ class Pymodel(pl.LightningModule):
 
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
-<<<<<<< Updated upstream
-        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
-        z = self.graph_pred_linear(z)
-        loss = Functional.mse_loss(z, batch.y.unsqueeze(1))
-=======
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         # z = self.graph_pred_linear(z)
         loss = Functional.mse_loss(z, batch.y) # removed the .unsqueeze(1) from batch.y
->>>>>>> Stashed changes
         return loss
 
     def configure_optimizers(self):
@@ -164,13 +132,8 @@ class Pymodel(pl.LightningModule):
         return optimizer
     
     def forward(self, batch):
-<<<<<<< Updated upstream
-        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
-        z = self.graph_pred_linear(z)
-=======
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         # z = self.molecule_3D_repr(z)
->>>>>>> Stashed changes
         return z
 
 

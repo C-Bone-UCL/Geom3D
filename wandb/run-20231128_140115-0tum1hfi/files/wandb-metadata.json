@@ -1,0 +1,235 @@
+{
+    "os": "Linux-4.18.0-348.20.1.el8_5.x86_64-x86_64-with-glibc2.28",
+    "python": "3.11.5",
+    "heartbeatAt": "2023-11-28T14:01:16.325231",
+    "startedAt": "2023-11-28T14:01:15.534025",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "<python with no main file>",
+    "codePathLocal": null,
+    "git": {
+        "remote": "https://github.com/mohammedazzouzi15/Geom3D.git",
+        "commit": "8b2c2d0c66da8763daaae9bbcb60370783fea0a9"
+    },
+    "email": null,
+    "root": "/rds/general/user/cb1319/home/GEOM3D/Geom3D",
+    "host": "cx3-10-8.cx3.hpc.ic.ac.uk",
+    "username": "cb1319",
+    "executable": "/rds/general/user/cb1319/home/anaconda3/envs/Geom3D/bin/python",
+    "cpu_count": 16,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 2118.17034375,
+        "min": 800.0,
+        "max": 3000.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2681.451,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2100.0,
+            "min": 800.0,
+            "max": 3000.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 195.2215690612793,
+            "used": 14.552864074707031
+        }
+    },
+    "gpu": "Quadro RTX 6000",
+    "gpu_count": 8,
+    "gpu_devices": [
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 187.5332260131836
+    }
+}

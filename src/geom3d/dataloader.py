@@ -49,10 +49,22 @@ def load_data(config):
         db,
         number_of_molecules=config["num_molecules"],
     )
+<<<<<<< Updated upstream
     if config["save_dataset"]:
         name = config["name"] + "_frag_" + str(config["number_of_fragement"])
         os.makedirs(name, exist_ok=True)
         torch.save(dataset, name+"/dataset.pt")
+=======
+
+    print(f"length of dataset: {len(dataset)}")
+
+    # where the new dataset daves
+    if config["save_dataset"]:
+        name = config["name"] 
+        os.makedirs(name, exist_ok=True)
+        torch.save(dataset, name+"/dataset.pt")
+        print(f"dataset saved to {name} /dataset.pt")
+>>>>>>> Stashed changes
     return dataset
 
 
@@ -60,6 +72,7 @@ def load_3d_rpr(model, output_model_path):
     saved_model_dict = torch.load(output_model_path)
     model.load_state_dict(saved_model_dict["model"])
     model.eval()
+<<<<<<< Updated upstream
     return model
 
 
@@ -89,6 +102,13 @@ def load_3d_rpr(model, output_model_path):
     # return molecule
 
 
+=======
+    # check if the function has performed correctly
+    print(model)
+    return model
+
+
+>>>>>>> Stashed changes
 def load_molecule(InChIKey, target, db):
     polymer = None
     try:

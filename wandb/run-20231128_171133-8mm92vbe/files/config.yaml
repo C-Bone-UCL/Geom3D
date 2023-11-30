@@ -9,11 +9,7 @@ _wandb:
     huggingface_version: 4.35.2
     is_jupyter_run: true
     is_kaggle_kernel: false
-<<<<<<< Updated upstream
-    start_time: 1701092601.018679
-=======
     start_time: 1701191494.718955
->>>>>>> Stashed changes
     t:
       1:
       - 1
@@ -33,11 +29,8 @@ _wandb:
       - 77
       3:
       - 2
-<<<<<<< Updated upstream
-=======
       - 7
       - 13
->>>>>>> Stashed changes
       - 23
       4: 3.11.5
       5: 0.16.0
@@ -46,51 +39,6 @@ _wandb:
       - 1
       - 5
       13: linux-x86_64
-<<<<<<< Updated upstream
-DimeNet_model:
-  desc: null
-  value:
-    act: swish
-    cutoff: 5.0
-    envelope_exponent: 5
-    hidden_channels: 128
-    node_class: 119
-    num_after_skip: 2
-    num_before_skip: 1
-    num_bilinear: 8
-    num_blocks: 6
-    num_output_layers: 3
-    num_radial: 6
-    num_spherical: 7
-    out_channels: 1
-STK_path:
-  desc: null
-  value: /rds/general/user/cb1319/home/GEOM3D/STK_path/
-SchNet_model:
-  desc: null
-  value:
-    SchNet_cutoff: 10
-    SchNet_num_filters: 128
-    SchNet_num_gaussians: 51
-    SchNet_num_interactions: 6
-    SchNet_readout: mean
-    edge_class: 5
-    emb_dim: 128
-    node_class: 119
-    num_tasks: 1
-batch_size:
-  desc: null
-  value: 128
-database_name:
-  desc: null
-  value: stk_cyprien
-dataset_path:
-  desc: null
-  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset.pt
-dataset_path_frag:
-  desc: null
-  value: ''
-=======
     m:
     - 1: trainer/global_step
       6:
@@ -116,7 +64,6 @@ batch_size:
 database_name:
   desc: null
   value: stk_mohammed_BO
->>>>>>> Stashed changes
 df_precursor:
   desc: null
   value: calculation_data_precursor_071123_clean.pkl
@@ -126,37 +73,21 @@ df_total:
 emb_dim:
   desc: null
   value: 128
-<<<<<<< Updated upstream
-load_dataset:
-  desc: null
-  value: true
-max_epochs:
-  desc: null
-  value: 3
-=======
 max_epochs:
   desc: null
   value: 5
 model_name:
   desc: null
   value: DimeNet
->>>>>>> Stashed changes
 model_path:
   desc: null
   value: ''
 name:
   desc: null
-<<<<<<< Updated upstream
-  value: SchNet_target_1K_TEST_5e4lr
-num_molecules:
-  desc: null
-  value: 1000
-=======
   value: DimeNetPlusPlus_target_1K_TEST_5e4lr
 num_molecules:
   desc: null
   value: 500
->>>>>>> Stashed changes
 num_tasks:
   desc: null
   value: 1
@@ -168,21 +99,13 @@ number_of_fragement:
   value: 6
 pl_model_chkpt:
   desc: null
-<<<<<<< Updated upstream
-  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/SchNet_target_1K_TEST_5e4lr/epoch=86-val_loss=0.54-other_metric===.00.ckpt
-=======
   value: ''
->>>>>>> Stashed changes
 pymongo_client:
   desc: null
   value: mongodb://129.31.66.201/
 running_dir:
   desc: null
-<<<<<<< Updated upstream
-  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training
-=======
   value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/
->>>>>>> Stashed changes
 save_dataset:
   desc: null
   value: true
@@ -195,23 +118,6 @@ train_ratio:
 valid_ratio:
   desc: null
   value: 0.1
-<<<<<<< Updated upstream
-device:
-  desc: null
-  value: cuda
-model:
-  desc: null
-  value:
-    SchNet_cutoff: 10
-    SchNet_num_filters: 128
-    SchNet_num_gaussians: 51
-    SchNet_num_interactions: 6
-    SchNet_readout: mean
-    edge_class: 5
-    emb_dim: 128
-    node_class: 119
-    num_tasks: 1
-=======
 load_dataset:
   desc: null
   value: true
@@ -241,4 +147,3 @@ model:
 device:
   desc: null
   value: cuda
->>>>>>> Stashed changes
