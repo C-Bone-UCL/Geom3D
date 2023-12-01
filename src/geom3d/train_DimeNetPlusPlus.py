@@ -8,10 +8,7 @@ import pymongo
 import numpy as np
 import os
 import pandas as pd
-<<<<<<< Updated upstream
-=======
 import time
->>>>>>> Stashed changes
 import wandb
 import torch.nn as nn
 import torch.optim as optim
@@ -34,11 +31,8 @@ from geom3d.utils.config_utils import read_config
 
 
 def main(config_dir):
-<<<<<<< Updated upstream
-=======
     start_time = time.time()
 
->>>>>>> Stashed changes
     config = read_config(config_dir)
     np.random.seed(config["seed"])
     torch.cuda.manual_seed_all(config["seed"])
@@ -72,10 +66,7 @@ def main(config_dir):
         model = load_3d_rpr(model, config["model_path"])
     os.chdir(config["running_dir"])
     wandb.login()
-<<<<<<< Updated upstream
-=======
     wandb.init(settings=wandb.Settings(start_method="fork"))
->>>>>>> Stashed changes
     # model
     #check if chkpt exists
     if os.path.exists(config["pl_model_chkpt"]):
@@ -107,13 +98,10 @@ def main(config_dir):
     )
     wandb.finish()
 
-<<<<<<< Updated upstream
-=======
     end_time = time.time()  # Record the end time
     total_time = end_time - start_time
     print(f"Total time taken for model training: {total_time} seconds")
 
->>>>>>> Stashed changes
     # load dataframe with calculated data
 
 
@@ -123,35 +111,23 @@ class Pymodel(pl.LightningModule):
         self.save_hyperparameters(ignore=['graph_pred_linear', 'model'])
         self.molecule_3D_repr = model
         self.graph_pred_linear = graph_pred_linear
-<<<<<<< Updated upstream
-        print("Value of self.graph_pred_linear:", self.graph_pred_linear)
-=======
->>>>>>> Stashed changes
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         loss = self._get_preds_loss_accuracy(batch)
 
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, batch_size=batch.size(0))
         return loss
 
     def validation_step(self, batch, batch_idx):
         """used for logging metrics"""
-<<<<<<< Updated upstream
         loss = self._get_preds_loss_accuracy(batch)
-=======
-        loss = self._get_preds_loss_accuracy(batch, batch_size=batch.size(0))
->>>>>>> Stashed changes
 
         # Log loss and metric
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, batch_size=batch.size(0))
         return loss
 
-<<<<<<< Updated upstream
     def _get_preds_loss_accuracy(self, batch):
-=======
-    def _get_preds_loss_accuracy(self, batch, batch_size=batch.size(0)):
->>>>>>> Stashed changes
         """convenience function since train/valid/test steps are similar"""
         z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         # z = self.graph_pred_linear(z)
@@ -179,9 +155,5 @@ if __name__ == "__main__":
         help="directory to config.json",
     )
     args = argparser.parse_args()
-<<<<<<< Updated upstream
-    config_dir = root + args.config_dir
-=======
     config_dir = args.config_dir
->>>>>>> Stashed changes
     main(config_dir=config_dir)
