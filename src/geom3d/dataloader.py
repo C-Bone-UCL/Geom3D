@@ -49,15 +49,6 @@ def load_data(config):
         db,
         number_of_molecules=config["num_molecules"],
     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    if config["save_dataset"]:
-        name = config["name"] + "_frag_" + str(config["number_of_fragement"])
-        os.makedirs(name, exist_ok=True)
-        torch.save(dataset, name+"/dataset.pt")
-=======
-=======
->>>>>>> Stashed changes
 
     print(f"length of dataset: {len(dataset)}")
 
@@ -65,14 +56,8 @@ def load_data(config):
     if config["save_dataset"]:
         name = config["name"] 
         os.makedirs(name, exist_ok=True)
-<<<<<<< Updated upstream
-        torch.save(dataset, name+"/dataset.pt")
-        print(f"dataset saved to {name} /dataset.pt")
->>>>>>> Stashed changes
-=======
         torch.save(dataset, "training/"+name+f"/{len(dataset)}dataset.pt")
         print(f"dataset saved to {name}/{len(dataset)}dataset.pt")
->>>>>>> Stashed changes
     return dataset
 
 
@@ -80,49 +65,11 @@ def load_3d_rpr(model, output_model_path):
     saved_model_dict = torch.load(output_model_path)
     model.load_state_dict(saved_model_dict["model"])
     model.eval()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    return model
-
-
-# def load_molecule(InChIKey, target, db):
-    # try:
-    #     polymer = db.get({"InChIKey": InChIKey})
-    #     # Print the complete dictionary returned from the database
-    #     print("Database entry for InChIKey:", polymer)
-    # except KeyError:
-    #     print(f"No key found in the database with a key of: {InChIKey}")
-    #     # Handle the missing key case (e.g., return a default value or raise an exception) 
-    
-    # dat_list = list(polymer.get_atomic_positions())
-    # positions = np.vstack(dat_list)
-    # positions = torch.tensor(positions, dtype=torch.float)
-    # atom_types = list(
-    #     [
-    #         atom.get_atom().get_atomic_number()
-    #         for atom in polymer.get_atom_infos()
-    #     ]
-    # )
-    # atom_types = torch.tensor(atom_types, dtype=torch.long)
-    # y = torch.tensor(target, dtype=torch.float32)
-
-    # molecule = Data(x=atom_types, positions=positions, y=y,
-    #     InChIKey=InChIKey)
-    # return molecule
-
-
-=======
-=======
->>>>>>> Stashed changes
     # check if the function has performed correctly
     print(model)
     return model
 
 
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 def load_molecule(InChIKey, target, db):
     polymer = None
     try:

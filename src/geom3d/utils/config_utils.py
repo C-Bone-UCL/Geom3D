@@ -13,15 +13,7 @@ def read_config(dir):
         config["save_dataset"] = False
         config["name"] = "SchNet_target_1K_TEST_5e4lr"
         config["pymongo_client"] = "mongodb://129.31.66.201/"
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        config["database_name"] = "stk_cyprien_BO"
-=======
         config["database_name"] = "stk_mohammed_BO"
->>>>>>> Stashed changes
-=======
-        config["database_name"] = "stk_mohammed_BO"
->>>>>>> Stashed changes
         config["STK_path"] = "/rds/general/user/cb1319/home/GEOM3D/STK_path/"
         config["running_dir"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/"
         config["batch_size"] = 128
@@ -41,36 +33,6 @@ def read_config(dir):
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        config["SchNet_model"] = dict()
-        config["SchNet_model"]["node_class"] = 119
-        config["SchNet_model"]["edge_class"] = 5
-        config["SchNet_model"]["num_tasks"] = 1
-        config["SchNet_model"]["emb_dim"] = 128
-        config["SchNet_model"]["SchNet_num_filters"] = 128
-        config["SchNet_model"]["SchNet_num_interactions"] = 6
-        config["SchNet_model"]["SchNet_num_gaussians"] = 51
-        config["SchNet_model"]["SchNet_cutoff"] = 10
-        config["SchNet_model"]["SchNet_readout"] = "mean"
-
-        config["DimeNet_model"] = dict()
-        config["DimeNet_model"]["node_class"] = 119
-        config["DimeNet_model"]["hidden_channels"] = 128
-        config["DimeNet_model"]["out_channels"] = 1
-        config["DimeNet_model"]["num_blocks"] = 6
-        config["DimeNet_model"]["num_bilinear"] = 8
-        config["DimeNet_model"]["num_spherical"] = 7
-        config["DimeNet_model"]["num_radial"] = 6
-        config["DimeNet_model"]["cutoff"] = 5.0
-        config["DimeNet_model"]["envelope_exponent"] = 5
-        config["DimeNet_model"]["num_before_skip"] = 1
-        config["DimeNet_model"]["num_after_skip"] = 2
-        config["DimeNet_model"]["num_output_layers"] = 3
-        config["DimeNet_model"]["act"] = "swish"
-=======
-=======
->>>>>>> Stashed changes
         # prompt the user to enter model name
         config["model_name"] = input("Enter model name: ") 
 
@@ -100,10 +62,6 @@ def read_config(dir):
             config["model"]["num_before_skip"] = 1
             config["model"]["num_after_skip"] = 2
             config["model"]["num_output_layers"] = 3
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
         save_config(config, dir)
         print("config saved to", dir)
