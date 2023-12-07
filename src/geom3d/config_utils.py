@@ -42,6 +42,7 @@ def read_config(dir):
         config["load_dataset"] = False
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""
+        config["dataset_path_precursor"] = ""
         save_config(config, dir)
         print("config saved to", dir)
 

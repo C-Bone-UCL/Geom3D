@@ -37,31 +37,47 @@ def main(config_dir):
     )
     # model_config = config["model"]
 
-    dataset = load_data(config)
+    dataset, model = load_data(config)
     train_loader, val_loader, test_loader = train_val_test_split(
         dataset, config=config
     )
     wandb.login()
-
+    # initilize model
+    model_config = config["model"]
+    model = SchNet(
+        hidden_channels=model_config["emb_dim"],
+        num_filters=model_config["SchNet_num_filters"],
+        num_interactions=model_config["SchNet_num_interactions"],
+        num_gaussians=model_config["SchNet_num_gaussians"],
+        cutoff=model_config["SchNet_cutoff"],
+        readout=model_config["SchNet_readout"],
+        node_class=model_config["node_class"],
+    )
     # model = model.to(device)
-
     # model
+    EncodingModel = Fragment_encoder(
+        input_dim=config["emb_dim"] * config["number_of_fragement"],
+        model_dim=config["emb_dim"],
+        num_heads=1,
+        num_classes=model_config["emb_dim"],
+        num_layers=1,
+        dropout=0.0,
+        lr=5e-4,
+        warmup=50,
+        max_iters=config["max_epochs"] * len(train_loader),
+    )
+
+    EncodingModel.add_encoder(model)
+
     if os.path.exists(config["model_transformer_chkpt"]):
-        EncodingModel = Fragment_encoder.load_from_checkpoint(
-            config["model_transformer_chkpt"]
+        print("loading model from checkpoint")
+        state_dict = torch.load(
+            config["model_transformer_chkpt"], map_location=config["device"]
         )
-    else:
-        EncodingModel = Fragment_encoder(
-            input_dim=train_loader.dataset[0].x.shape[1],
-            model_dim=config["emb_dim"],
-            num_heads=1,
-            num_classes=train_loader.dataset[0].y.shape[1],
-            num_layers=1,
-            dropout=0.0,
-            lr=5e-4,
-            warmup=50,
-        )
-    name = config["name"] + "_frag_transf_" + str(config["number_of_fragement"])
+        EncodingModel.load_state_dict(state_dict["state_dict"])
+    name = (
+        config["name"] + "_frag_transf_" + str(config["number_of_fragement"])
+    )
     wandb_logger = WandbLogger(
         log_model="all", project="Geom3D_fragencoding", name=name
     )
@@ -91,9 +107,34 @@ def main(config_dir):
 
 
 class Fragment_encoder(TransformerPredictor):
+    def add_encoder(self, model_encoder):
+        self.model_encoder = model_encoder
+
+    def forward(self, batch, mask=None, add_positional_encoding=True):
+        """
+        Args:
+            x: Input features of shape [Batch, SeqLen, input_dim]
+            mask: Mask to apply on the attention outputs (optional)
+            add_positional_encoding: If True, we add the positional encoding to the input.
+                                      Might not be desired for some tasks.
+        """
+        if self.model_encoder is not None:
+            x = []
+            for b in batch:
+                x.append(self.model_encoder(b.x, b.positions, b.batch))
+            x = torch.cat(x, dim=1)
+        else:
+            x = batch.x
+        x = self.input_net(x)
+        if add_positional_encoding:
+            x = self.positional_encoding(x)
+        x = self.transformer(x, mask=mask)
+        x = self.output_net(x)
+        return x
+
     def _calculate_loss(self, batch, mode="train"):
         # Fetch data and transform categories to one-hot vectors
-        inp_data, labels = batch.x.squeeze(), batch.y.squeeze()
+        inp_data, labels = batch, batch[0].y.squeeze()
 
         # inp_data = F.one_hot(inp_data, num_classes=self.hparams.num_classes).float()
 
@@ -104,7 +145,6 @@ class Fragment_encoder(TransformerPredictor):
 
         # Logging
         self.log("%s_loss" % mode, loss)
-        self.log("%s_acc" % mode, acc)
         return loss, acc
 
     def training_step(self, batch, batch_idx):
@@ -121,8 +161,19 @@ class Fragment_encoder(TransformerPredictor):
 def load_data(config):
     if config["load_dataset"]:
         if os.path.exists(config["dataset_path_frag"]):
+            print(f"loading dataset from {config['dataset_path_frag']}")
             dataset = torch.load(config["dataset_path_frag"])
-            return dataset
+            if os.path.exists(config["model_embedding_chkpt"]):
+                pymodel = Pymodel.load_from_checkpoint(
+                    config["model_embedding_chkpt"]
+                )
+                pymodel.freeze()
+                pymodel.to(config["device"])
+                model = pymodel.molecule_3D_repr
+                return dataset, model
+            else:
+                print("model not found")
+                return None, None
         else:
             print("dataset not found")
     df_path = Path(
@@ -156,14 +207,16 @@ def load_data(config):
         )
         if config["save_dataset"]:
             name = (
-                config["name"] + "_frag_" + str(config["number_of_fragement"])
+                config["name"]
+                + "_frag_transf_"
+                + str(config["number_of_fragement"])
             )
             os.makedirs(name, exist_ok=True)
             torch.save(dataset, name + "/dataset_frag.pt")
-        return dataset
+        return dataset, model
     else:
         print("model not found")
-        return None
+        return None, None
 
 
 def load_3d_rpr(model, output_model_path):
@@ -206,6 +259,10 @@ def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
     atom_types = torch.tensor(atom_types, dtype=torch.long, device=device)
     molecule = Data(x=atom_types, positions=positions, device=device)
     if len(list(polymer.get_building_blocks())) == number_of_fragement:
+        with torch.no_grad():
+            model.eval()
+
+            opt_geom_encoding = model(molecule.x, molecule.positions)
         for molecule_bb in polymer.get_building_blocks():
             dat_list = list(molecule_bb.get_atomic_positions())
             positions = np.vstack(dat_list)
@@ -222,19 +279,11 @@ def fragment_based_encoding(InChIKey, db_poly, model, number_of_fragement=6):
                 x=atom_types,
                 positions=positions,
                 device=device,
+                y=opt_geom_encoding,
+                InChIKey=InChIKey,
             )
             frags.append(molecule_frag)
-
-        with torch.no_grad():
-            model.eval()
-            batch = Batch.from_data_list(frags).to(device)
-            original_encoding = model(batch.x, batch.positions, batch.batch)
-            original_encoding = original_encoding.reshape((-1,))
-            original_encoding = original_encoding.unsqueeze(0)
-            opt_geom_encoding = model(molecule.x, molecule.positions)
-        return Data(
-            x=original_encoding, y=opt_geom_encoding, InChIKey=InChIKey
-        )
+        return frags
 
 
 def train_val_test_split(dataset, config, smiles_list=None):
@@ -252,9 +301,9 @@ def train_val_test_split(dataset, config, smiles_list=None):
     valid_idx = all_idx[Ntrain : Ntrain + Nvalid]
     test_idx = all_idx[Ntrain + Nvalid :]
 
-    print("train_idx: ", train_idx)
-    print("valid_idx: ", valid_idx)
-    print("test_idx: ", test_idx)
+    # print("train_idx: ", train_idx)
+    # print("valid_idx: ", valid_idx)
+    # print("test_idx: ", test_idx)
     # np.savez("customized_01", train_idx=train_idx, valid_idx=valid_idx, test_idx=test_idx)
 
     assert len(set(train_idx).intersection(set(valid_idx))) == 0

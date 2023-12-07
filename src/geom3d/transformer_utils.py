@@ -9,6 +9,7 @@ import torch.optim as optim
 import math
 # PyTorch Lightning
 import lightning as L
+import numpy as np
 
 
 class EncoderBlock(nn.Module):
@@ -228,7 +229,8 @@ class TransformerPredictor(L.LightningModule):
             nn.Dropout(self.hparams.dropout),
             nn.Linear(self.hparams.model_dim, self.hparams.num_classes),
         )
-
+        self.model_encoder = None
+ 
     def forward(self, x, mask=None, add_positional_encoding=True):
         """
         Args:
