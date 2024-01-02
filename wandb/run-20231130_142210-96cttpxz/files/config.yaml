@@ -1,0 +1,134 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.5
+    cli_version: 0.16.0
+    framework: huggingface
+    huggingface_version: 4.35.2
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    start_time: 1701354131.027936
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 77
+      2:
+      - 1
+      - 5
+      - 11
+      - 49
+      - 53
+      - 55
+      - 77
+      3:
+      - 7
+      - 13
+      - 23
+      4: 3.11.5
+      5: 0.16.0
+      6: 4.35.2
+      8:
+      - 1
+      - 5
+      13: linux-x86_64
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+STK_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/STK_path/
+batch_size:
+  desc: null
+  value: 64
+database_name:
+  desc: null
+  value: stk_mohammed_BO
+df_precursor:
+  desc: null
+  value: calculation_data_precursor_071123_clean.pkl
+df_total:
+  desc: null
+  value: df_total_subset_16_11_23.csv
+emb_dim:
+  desc: null
+  value: 128
+max_epochs:
+  desc: null
+  value: 5
+model_name:
+  desc: null
+  value: DimeNet
+model_path:
+  desc: null
+  value: ''
+name:
+  desc: null
+  value: DimeNet_target_1K_TEST_5e4lr
+num_molecules:
+  desc: null
+  value: 500
+num_tasks:
+  desc: null
+  value: 1
+num_workers:
+  desc: null
+  value: 0
+number_of_fragement:
+  desc: null
+  value: 6
+pl_model_chkpt:
+  desc: null
+  value: ''
+pymongo_client:
+  desc: null
+  value: mongodb://129.31.66.201/
+running_dir:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/
+save_dataset:
+  desc: null
+  value: true
+seed:
+  desc: null
+  value: 42
+train_ratio:
+  desc: null
+  value: 0.8
+valid_ratio:
+  desc: null
+  value: 0.1
+load_dataset:
+  desc: null
+  value: true
+dataset_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/training/DimeNetPlusPlus_target_1K_TEST_5e4lr/500dataset.pt
+dataset_path_frag:
+  desc: null
+  value: ''
+model:
+  desc: null
+  value:
+    node_class: 119
+    hidden_channels: 30
+    out_channels: 1
+    num_blocks: 6
+    num_bilinear: 8
+    num_spherical: 7
+    num_radial: 6
+    cutoff: 5.0
+    envelope_exponent: 5
+    num_before_skip: 1
+    num_after_skip: 2
+    num_output_layers: 3
+device:
+  desc: null
+  value: cuda
