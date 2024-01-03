@@ -7,10 +7,10 @@ import pymongo
 
 
 # read data in database
-def load_data_database(df_precursor_loc="/rds/general/user/cb1319/home/data/output/Prescursor_data/calculation_data_precursor_071123_clean.pkl"):
+def load_data_database( df_precursor_loc = "Data/calculation_data_precursor_310823_clean.pkl"):
     def load_data():
         client = pymongo.MongoClient("mongodb://129.31.66.201/")
-        database = client["stk_cyprien"]
+        database = client["stk_mohammed_BO"]
         collection = database["BO_exp1_IPEA"]
         df_IPEA = pd.DataFrame(list(collection.find()))
         collection = database["BO_exp1_Stda"]

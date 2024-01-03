@@ -1,84 +1,54 @@
-"""
-script to train the SchNet model on the STK dataset
-created by Mohammed Azzouzi
-date: 2023-11-14
-"""
-
-import numpy as np
-import os
-
-import time
-import wandb
-import torch
 import lightning.pytorch as pl
-from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.callbacks import ModelCheckpoint
-from geom3d.dataloader import load_data, train_val_split, load_3d_rpr
+import torch.nn.functional as Functional
+import torch
 from geom3d.models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet
-from geom3d.utils.config_utils import read_config
-from geom3d.pl_model import Pymodel
 
 
-def main(config_dir):
-    start_time = time.time()
+class Pymodel(pl.LightningModule):
+    def __init__(self, model, graph_pred_linear):
+        super().__init__()
+        self.save_hyperparameters(ignore=["graph_pred_linear", "model"])
+        self.molecule_3D_repr = model
+        self.graph_pred_linear = graph_pred_linear
 
-    config = read_config(config_dir)
-    np.random.seed(config["seed"])
-    torch.cuda.manual_seed_all(config["seed"])
-    config["device"] = (
-        "cuda" if torch.cuda.is_available() else torch.device("cpu")
-    )
-    dataset = load_data(config)
-    train_loader, val_loader = train_val_split(dataset, config=config)
+    def training_step(self, batch, batch_idx):
+        # training_step defines the train loop.
+        loss = self._get_preds_loss_accuracy(batch)
 
-    model, graph_pred_linear = model_setup(config)
-    print("Model loaded: ", config["model_name"])
+        self.log("train_loss", loss, batch_size=batch.size(0))
+        return loss
 
-    if config["model_path"]:
-        model = load_3d_rpr(model, config["model_path"])
-    os.chdir(config["running_dir"])
-    wandb.login()
-    # wandb.init(settings=wandb.Settings(start_method="fork"))
-    # model
-    # check if chkpt exists
-    if os.path.exists(config["pl_model_chkpt"]):
-        pymodel_SCHNET = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
-    else:
-        pymodel_SCHNET = Pymodel(model, graph_pred_linear)
-    wandb_logger = WandbLogger(
-        log_model="all",
-        project=f"Geom3D_{config['model_name']}_{config['target_name']}",
-        name=config["name"],
-    )
-    wandb_logger.log_hyperparams(config)
+    def validation_step(self, batch, batch_idx):
+        """used for logging metrics"""
+        loss = self._get_preds_loss_accuracy(batch)
 
-    # train model
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=config["name"],
-        filename="{epoch}-{val_loss:.2f}-{other_metric:.2f}",
-        monitor="val_loss",
-        mode="min",
-    )
+        # Log loss and metric
+        self.log("val_loss", loss, batch_size=batch.size(0))
+        return loss
 
-    trainer = pl.Trainer(
-        logger=wandb_logger,
-        max_epochs=config["max_epochs"],
-        val_check_interval=1.0,
-        log_every_n_steps=1,
-        callbacks=[checkpoint_callback],
-    )
-    trainer.fit(
-        model=pymodel_SCHNET,
-        train_dataloaders=train_loader,
-        val_dataloaders=val_loader,
-    )
-    wandb.finish()
+    def _get_preds_loss_accuracy(self, batch):
+        """convenience function since train/valid/test steps are similar"""
+        if self.graph_pred_linear is not None:
+            z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
+            z = self.graph_pred_linear(z)
+            loss = Functional.mse_loss(z, batch.y.unsqueeze(1))
 
-    end_time = time.time()  # Record the end time
-    total_time = end_time - start_time
-    print(f"Total time taken for model training: {total_time} seconds")
+        else:
+            z = self.molecule_3D_repr(
+                batch.x, batch.positions, batch.batch
+            ).squeeze()
+            loss = Functional.mse_loss(z, batch.y)
 
-    # load dataframe with calculated data
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
+        return optimizer
+
+    def forward(self, batch):
+        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
+        z = self.graph_pred_linear(z)
+        return z
 
 
 def model_setup(config):
@@ -185,21 +155,5 @@ def model_setup(config):
         graph_pred_linear = None
     else:
         raise ValueError("Invalid model name")
-
+    
     return model, graph_pred_linear
-
-
-if __name__ == "__main__":
-    from argparse import ArgumentParser
-
-    root = os.getcwd()
-    argparser = ArgumentParser()
-    argparser.add_argument(
-        "--config_dir",
-        type=str,
-        default="",
-        help="directory to config.json",
-    )
-    args = argparser.parse_args()
-    config_dir = args.config_dir
-    main(config_dir=config_dir)

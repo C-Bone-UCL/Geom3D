@@ -2,12 +2,12 @@ import json
 import os
 
 
-def read_config(dir):
+def read_config(dir, model_name=""):
     if os.path.exists(dir + "/config.json"):
         config = load_config(dir)
         print("config loaded from", dir)
     else:
-# Set parameters
+        # Set parameters
         config = dict()
         config["seed"] = 42
         config["save_dataset"] = False
@@ -15,7 +15,9 @@ def read_config(dir):
         config["pymongo_client"] = "mongodb://129.31.66.201/"
         config["database_name"] = "stk_mohammed_BO"
         config["STK_path"] = "/rds/general/user/cb1319/home/GEOM3D/STK_path/"
-        config["running_dir"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/"
+        config[
+            "running_dir"
+        ] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/"
         config["batch_size"] = 128
         config["df_total"] = "df_total_subset_16_11_23.csv"
         config["df_precursor"] = "calculation_data_precursor_071123_clean.pkl"
@@ -24,17 +26,21 @@ def read_config(dir):
         config["num_tasks"] = 1
         config["emb_dim"] = 128
         config["max_epochs"] = 3
-        config['train_ratio'] = 0.8
-        config['valid_ratio'] = 0.1
-        config['number_of_fragement'] = 6
+        config["train_ratio"] = 0.8
+        config["valid_ratio"] = 0.1
+        config["number_of_fragement"] = 6
         config["model_path"] = ""
         config["pl_model_chkpt"] = ""
         config["load_dataset"] = False
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""
+        config['target_name'] = "target"
 
         # prompt the user to enter model name
-        config["model_name"] = input("Enter model name: ") 
+        if model_name == "":
+            config["model_name"] = input("Enter model name: ")
+        else:
+            config["model_name"] = model_name
 
         if config["model_name"] == "SchNet":
             config["model"] = dict()
@@ -62,7 +68,8 @@ def read_config(dir):
             config["model"]["num_before_skip"] = 1
             config["model"]["num_after_skip"] = 2
             config["model"]["num_output_layers"] = 3
-
+        else:
+            raise ValueError("Model name not recognised")
         save_config(config, dir)
         print("config saved to", dir)
 
@@ -71,21 +78,22 @@ def read_config(dir):
 
 def save_config(config, dir):
     os.makedirs(dir, exist_ok=True)
-    #save config to json
+    # save config to json
     with open(dir + "/config.json", "w") as f:
-        json.dump(config, f, indent=4,
-            separators=(',', ': '), sort_keys=True)
+        json.dump(config, f, indent=4, separators=(",", ": "), sort_keys=True)
     return None
 
 
 def load_config(dir):
-    #load config from json
+    # load config from json
     with open(dir + "/config.json", "r") as f:
         config = json.load(f)
     return config
 
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
+
     root = os.getcwd()
     argparser = ArgumentParser()
     argparser.add_argument(
