@@ -38,8 +38,8 @@ def run_training(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", type=str, default="fosc1")
-    parser.add_argument("--aim", type=int, default=0)
+    parser.add_argument("--aim", type=float, default=0)
     parser.add_argument("--num_molecules", type=int, default=1000)
-    parser.add_argument("--max_epochs", type=float, default=5)
+    parser.add_argument("--max_epochs", type=int, default=5)
     args = parser.parse_args()
     run_training(args.target, args.aim, args.num_molecules, args.max_epochs)

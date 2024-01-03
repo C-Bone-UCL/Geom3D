@@ -188,7 +188,7 @@ def load_data_frag(config):
                 print("model not found")
                 return None, None
         else:
-            print("dataset not found")
+            print("dataset frag not found")
         if os.path.exists(config["dataset_path"]):
             if "device" in config.keys():
                 dataset_opt = torch.load(

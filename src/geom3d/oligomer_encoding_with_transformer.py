@@ -18,6 +18,7 @@ from geom3d.transformer_utils import TransformerPredictor
 from geom3d.utils.config_utils import read_config
 from geom3d.dataloader import load_data_frag, train_val_split
 
+
 def main(config_dir):
     config = read_config(config_dir)
     os.chdir(config["running_dir"])
@@ -29,9 +30,7 @@ def main(config_dir):
     # model_config = config["model"]
 
     dataset, model = load_data_frag(config)
-    train_loader, val_loader = train_val_split(
-        dataset, config=config
-    )
+    train_loader, val_loader = train_val_split(dataset, config=config)
     wandb.login()
     # initilize model
     model_config = config["model"]
@@ -70,7 +69,9 @@ def main(config_dir):
         config["name"] + "_frag_transf_" + str(config["number_of_fragement"])
     )
     wandb_logger = WandbLogger(
-        log_model="all", project="Geom3D_fragencoding", name=name
+        log_model="all",
+        project=f"Geom3D_frag_{config['model_name']}_{config['target_name']}",
+        name=name,
     )
     wandb_logger.log_hyperparams(config)
 
@@ -147,8 +148,6 @@ class Fragment_encoder(TransformerPredictor):
 
     def test_step(self, batch, batch_idx):
         _ = self._calculate_loss(batch, mode="test")
-
-
 
 
 if __name__ == "__main__":
