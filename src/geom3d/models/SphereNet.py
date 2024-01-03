@@ -372,6 +372,18 @@ class SphereNet(torch.nn.Module):
         idx_k_n = adj_t[idx_j].storage.col()
         repeat = num_triplets - 1
         num_triplets_t = num_triplets.repeat_interleave(repeat)
+        #num_triplets_t = num_triplets.repeat_interleave(num_triplets) - 1
+
+        #debug
+        print("Sizes before repeat_interleave:")
+        print("idx_i size:", idx_i.size())
+        print("num_triplets_t size:", num_triplets_t.size())
+        print("num_triplets size:", num_triplets.size())
+        print("idx_j size:", idx_j.size())
+        print("idx_k size:", idx_k.size())
+        print("idx_batch size:", idx_batch.size())
+        print("idx_k_n size:", idx_k_n.size())
+
         idx_i_t = idx_i.repeat_interleave(num_triplets_t)
         idx_j_t = idx_j.repeat_interleave(num_triplets_t)
         idx_k_t = idx_k.repeat_interleave(num_triplets_t)

@@ -56,3 +56,4 @@ MANIFEST
 *.pt
 *.ckpt
 *.ipynb
+wandb/latest-run/files/conda-environment.yaml
