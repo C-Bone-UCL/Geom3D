@@ -21,11 +21,17 @@ import torch.nn.functional as Functional
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 from pathlib import Path
+from geom3d import dataloader
 from geom3d.dataloader import load_data, train_val_test_split, load_3d_rpr
-from geom3d.models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet
+from geom3d.dataloaders.dataloaders_GemNet import DataLoaderGemNet
+from geom3d import models
+from geom3d.models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet, SphereNetPeriodic, PaiNN, EquiformerEnergy
 from geom3d.utils import database_utils
 from geom3d.utils.config_utils import read_config
+import importlib
 
+importlib.reload(models)
+importlib.reload(dataloader)
 
 def main(config_dir):
     start_time = time.time()
@@ -36,13 +42,15 @@ def main(config_dir):
     config["device"] = (
         "cuda" if torch.cuda.is_available() else torch.device("cpu")
     )
+
     dataset = load_data(config)
-    train_loader, val_loader, test_loader = train_val_test_split(
-        dataset, config=config
-    )
 
     model, graph_pred_linear = model_setup(config)
     print("Model loaded: ", config["model_name"])
+
+    train_loader, val_loader, test_loader = train_val_test_split(
+        dataset, config=config
+    )
 
     if config["model_path"]:
         model = load_3d_rpr(model, config["model_path"])
@@ -78,12 +86,18 @@ def main(config_dir):
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
+
+    checkpoint_path = checkpoint_callback.best_model_path
+
     wandb.finish()
 
     end_time = time.time()  # Record the end time
     total_time = end_time - start_time
     print(f"Total time taken for model training: {total_time} seconds")
     
+    # Print the path of the saved checkpoint
+    print(f"Checkpoint saved at: {checkpoint_path}")
+
     # load dataframe with calculated data
 
 
@@ -111,15 +125,14 @@ class Pymodel(pl.LightningModule):
 
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
-        if self.graph_pred_linear is not None:
-            z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
-            z = self.graph_pred_linear(z)
-            loss = Functional.mse_loss(z, batch.y.unsqueeze(1))
-        
-        else:
-            z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
-            loss = Functional.mse_loss(z, batch.y)
+        batch = batch.to(self.device)
+        model_name = type(self.molecule_3D_repr).__name__
+        z = self.forward(batch)
 
+        if self.graph_pred_linear is not None:
+            loss = Functional.mse_loss(z, batch.y.unsqueeze(1))
+        else:
+            loss = Functional.mse_loss(z, batch.y)
         return loss
 
     def configure_optimizers(self):
@@ -127,8 +140,23 @@ class Pymodel(pl.LightningModule):
         return optimizer
     
     def forward(self, batch):
-        z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
-        z = self.graph_pred_linear(z)
+        batch = batch.to(self.device)
+        model_name = type(self.molecule_3D_repr).__name__
+
+        if self.graph_pred_linear is not None:
+            if model_name == "PaiNN":
+                z = self.molecule_3D_repr(batch.x, batch.positions, batch.radius_edge_index, batch.batch).squeeze()
+                z = self.graph_pred_linear(z)
+            else:
+                z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch)
+                z = self.graph_pred_linear(z)
+        else:
+            if model_name == "GemNet":
+                z = self.molecule_3D_repr(batch.x, batch.positions, batch).squeeze()
+            elif model_name == "Equiformer":
+                z = self.molecule_3D_repr(node_atom=batch.x, pos=batch.positions, batch=batch.batch)
+            else:
+                z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         return z
 
 
@@ -234,6 +262,54 @@ def model_setup(config):
             num_output_layers=model_config["num_output_layers"],
         )
         graph_pred_linear = None
+
+    elif config["model_name"] == "PaiNN":
+        model = PaiNN(
+            n_atom_basis=model_config["n_atom_basis"],
+            n_interactions=model_config["n_interactions"],
+            n_rbf=model_config["n_rbf"],
+            cutoff=model_config["cutoff"],
+            max_z=model_config["max_z"],
+            n_out=model_config["n_out"],
+            readout=model_config["readout"],
+        )
+        graph_pred_linear = model.create_output_layers()
+
+    elif config["model_name"] == "Equiformer":
+        if config["model"]["Equiformer_hyperparameter"] == 0:
+            # This follows the hyper in Equiformer_l2
+            model = EquiformerEnergy(
+                irreps_in=model_config["Equiformer_irreps_in"],
+                max_radius=model_config["Equiformer_radius"],
+                node_class=model_config["node_class"],
+                number_of_basis=model_config["Equiformer_num_basis"], 
+                irreps_node_embedding='128x0e+64x1e+32x2e', num_layers=6,
+                irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
+                fc_neurons=[64, 64], 
+                irreps_feature='512x0e',
+                irreps_head='32x0e+16x1e+8x2e', num_heads=4, irreps_pre_attn=None,
+                rescale_degree=False, nonlinear_message=False,
+                irreps_mlp_mid='384x0e+192x1e+96x2e',
+                norm_layer='layer',
+                alpha_drop=0.2, proj_drop=0.0, out_drop=0.0, drop_path_rate=0.0)
+        elif config["model"]["Equiformer_hyperparameter"] == 1:
+            # This follows the hyper in Equiformer_nonlinear_bessel_l2_drop00
+            model = EquiformerEnergy(
+                irreps_in=model_config["Equiformer_irreps_in"],
+                max_radius=model_config["Equiformer_radius"],
+                node_class=model_config["node_class"],
+                number_of_basis=model_config["Equiformer_num_basis"], 
+                irreps_node_embedding='128x0e+64x1e+32x2e', num_layers=6,
+                irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
+                fc_neurons=[64, 64], basis_type='bessel',
+                irreps_feature='512x0e',
+                irreps_head='32x0e+16x1e+8x2e', num_heads=4, irreps_pre_attn=None,
+                rescale_degree=False, nonlinear_message=True,
+                irreps_mlp_mid='384x0e+192x1e+96x2e',
+                norm_layer='layer',
+                alpha_drop=0.0, proj_drop=0.0, out_drop=0.0, drop_path_rate=0.0)
+        graph_pred_linear = None
+    
     else:
         raise ValueError("Invalid model name")
     

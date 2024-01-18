@@ -17,7 +17,14 @@ import torch.nn.functional as Functional
 from lightning.pytorch.callbacks import ModelCheckpoint
 from pathlib import Path
 from geom3d.utils import database_utils
+from geom3d.dataloaders import dataloaders_GemNet
+from geom3d.dataloaders.dataloaders_GemNet import DataLoaderGemNet
+from geom3d.dataloaders.dataloaders_GemNetLEP import DataLoaderGemNetLEP
+from geom3d.dataloaders.dataloaders_GemNetPeriodicCrystal import DataLoaderGemNetPeriodicCrystal
+import importlib
+from torch_cluster import radius_graph
 
+importlib.reload(dataloaders_GemNet)
 
 def load_data(config):
     if config["load_dataset"]:
@@ -48,6 +55,8 @@ def load_data(config):
         df_precursors,
         db,
         number_of_molecules=config["num_molecules"],
+        radius=config["model"]["cutoff"],
+        model_name=config["model_name"]
     )
 
     print(f"length of dataset: {len(dataset)}")
@@ -91,6 +100,7 @@ def load_molecule(InChIKey, target, db):
             ]
         )
         atom_types = torch.tensor(atom_types, dtype=torch.long)
+        
         y = torch.tensor(target, dtype=torch.float32)
 
         molecule = Data(x=atom_types, positions=positions, y=y,
@@ -99,7 +109,7 @@ def load_molecule(InChIKey, target, db):
     else:
         return None
 
-def generate_dataset(df_total, df_precursors, db, number_of_molecules=500):
+def generate_dataset(df_total, df_precursors, db, radius, model_name, number_of_molecules=500):
     molecule_index = np.random.choice(
         len(df_total), number_of_molecules, replace=False
     )
@@ -115,7 +125,13 @@ def generate_dataset(df_total, df_precursors, db, number_of_molecules=500):
         molecule = load_molecule(
                 df_total["InChIKey"][i], df_total["target"][i], db
             )
-        data_list.append(molecule)
+        if model_name == "PaiNN":
+            if molecule is not None:
+                radius_edge_index = radius_graph(molecule.positions, r=radius, loop=False)
+                molecule.radius_edge_index = radius_edge_index
+                data_list.append(molecule)
+        else:
+            data_list.append(molecule)
     return data_list
 
 
@@ -145,24 +161,35 @@ def train_val_test_split(dataset, config, smiles_list=None):
     train_dataset = [dataset[x] for x in train_idx]
     valid_dataset = [dataset[x] for x in valid_idx]
     test_dataset = [dataset[x] for x in test_idx]
+
+    if config["model_name"] == "GemNet":
+        dataloader_kwargs = {"cutoff": config["model"]["cutoff"], "int_cutoff": config["model"]["int_cutoff"], "triplets_only": config["model"]["triplets_only"]}
+        DataLoaderClass=DataLoaderGemNet
+    else:
+        dataloader_kwargs = {}
+        DataLoaderClass=DataLoader
+
     # Set dataloaders
-    train_loader = DataLoader(
+    train_loader = DataLoaderClass(
         train_dataset,
         batch_size=config["batch_size"],
         shuffle=True,
         num_workers=config["num_workers"],
+        **dataloader_kwargs
     )
-    val_loader = DataLoader(
+    val_loader = DataLoaderClass(
         valid_dataset,
         batch_size=config["batch_size"],
         shuffle=True,
         num_workers=config["num_workers"],
+        **dataloader_kwargs
     )
-    test_loader = DataLoader(
+    test_loader = DataLoaderClass(
         test_dataset,
         batch_size=config["batch_size"],
         shuffle=True,
         num_workers=config["num_workers"],
+        **dataloader_kwargs
     )
     if not smiles_list:
         return train_loader, val_loader, test_loader
