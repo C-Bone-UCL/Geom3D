@@ -34,7 +34,7 @@ def read_config(dir):
         config["dataset_path_frag"] = ""
 
         # prompt the user to enter model name
-        config["model_name"] = input("Enter model name: ") 
+        config["model_name"] = "SchNet"
 
         if config["model_name"] == "SchNet":
             config["model"] = dict()

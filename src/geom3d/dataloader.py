@@ -30,6 +30,7 @@ def load_data(config):
     if config["load_dataset"]:
         if os.path.exists(config["dataset_path"]):
             dataset = torch.load(config["dataset_path"])
+
             return dataset
         else:
             print("dataset not found")
@@ -50,14 +51,24 @@ def load_data(config):
         database=config["database_name"],
     )
     
-    dataset = generate_dataset(
-        df_total,
-        df_precursors,
-        db,
-        number_of_molecules=config["num_molecules"],
-        radius=config["model"]["cutoff"],
-        model_name=config["model_name"]
-    )
+    if config["model_name"] == "PaiNN":
+        dataset = generate_dataset(
+            df_total,
+            df_precursors,
+            db,
+            number_of_molecules=config["num_molecules"],
+            model_name=config["model_name"],
+            radius=config["model"]["cutoff"],
+        )
+    else:
+        dataset = generate_dataset(
+            df_total,
+            df_precursors,
+            db,
+            number_of_molecules=config["num_molecules"],
+            model_name=config["model_name"],
+            radius=None
+        )
 
     print(f"length of dataset: {len(dataset)}")
 
@@ -109,7 +120,7 @@ def load_molecule(InChIKey, target, db):
     else:
         return None
 
-def generate_dataset(df_total, df_precursors, db, radius, model_name, number_of_molecules=500):
+def generate_dataset(df_total, df_precursors, db, model_name, radius, number_of_molecules=500):
     molecule_index = np.random.choice(
         len(df_total), number_of_molecules, replace=False
     )
@@ -135,7 +146,7 @@ def generate_dataset(df_total, df_precursors, db, radius, model_name, number_of_
     return data_list
 
 
-def train_val_test_split(dataset, config, smiles_list=None):
+def train_val_test_split(dataset, config, batch_size, smiles_list=None):
     seed = config["seed"]
     num_mols = len(dataset)
     np.random.seed(seed)
@@ -172,21 +183,21 @@ def train_val_test_split(dataset, config, smiles_list=None):
     # Set dataloaders
     train_loader = DataLoaderClass(
         train_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=True,
         num_workers=config["num_workers"],
         **dataloader_kwargs
     )
     val_loader = DataLoaderClass(
         valid_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=True,
         num_workers=config["num_workers"],
         **dataloader_kwargs
     )
     test_loader = DataLoaderClass(
         test_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=True,
         num_workers=config["num_workers"],
         **dataloader_kwargs

@@ -18,8 +18,10 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data, Batch
 import lightning.pytorch as pl
 import torch.nn.functional as Functional
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from pathlib import Path
 from geom3d import dataloader
 from geom3d.dataloader import load_data, train_val_test_split, load_3d_rpr
@@ -45,11 +47,26 @@ def main(config_dir):
 
     dataset = load_data(config)
 
+    # Initialize distributed training
+    if dist.is_initialized():
+        world_size, rank = init_distributed_training()
+    else:
+        world_size = 1
+        rank = 0
+
     model, graph_pred_linear = model_setup(config)
+
+    # Wrap the model with DistributedDataParallel if more than one GPU is available
+    if torch.cuda.device_count() > 1:
+        model = DistributedDataParallel(model)
+    
     print("Model loaded: ", config["model_name"])
 
+    # effective batch size for distributed training
+    effective_batch_size = config["batch_size"] // world_size
+
     train_loader, val_loader, test_loader = train_val_test_split(
-        dataset, config=config
+        dataset, config=config, batch_size=effective_batch_size
     )
 
     if config["model_path"]:
@@ -62,8 +79,13 @@ def main(config_dir):
     if os.path.exists(config["pl_model_chkpt"]):
         pymodel_SCHNET = Pymodel.load_from_checkpoint(config["pl_model_chkpt"])
     else:
-        pymodel_SCHNET = Pymodel(model, graph_pred_linear)
-    wandb_logger = WandbLogger(log_model="all", project="Geom3D", name=config["name"])
+        pymodel_SCHNET = Pymodel(model, graph_pred_linear, config)
+    
+    wandb_logger = WandbLogger(
+        log_model="all",
+        project=f"Geom3D_{config['model_name']}_{config['target_name']}",
+        name=config["name"],
+    )
     wandb_logger.log_hyperparams(config)
 
     # train model
@@ -74,18 +96,38 @@ def main(config_dir):
         mode="min",
     )
 
-    trainer = pl.Trainer(
-        logger=wandb_logger,
-        max_epochs=config["max_epochs"],
-        val_check_interval=1.0,
-        log_every_n_steps=1,
-        callbacks=[checkpoint_callback],
-    )
-    trainer.fit(
-        model=pymodel_SCHNET,
-        train_dataloaders=train_loader,
-        val_dataloaders=val_loader,
-    )
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+
+    if config["mixed_precision"] is True:
+        trainer = pl.Trainer(
+            logger=wandb_logger,
+            max_epochs=config["max_epochs"],
+            val_check_interval=1.0,
+            log_every_n_steps=1,
+            callbacks=[checkpoint_callback, lr_monitor, PrintLearningRate()],
+            precision=16,  # 16-bit precision for mixed precision training
+        )
+    else:
+        trainer = pl.Trainer(
+            logger=wandb_logger,
+            max_epochs=config["max_epochs"],
+            val_check_interval=1.0,
+            log_every_n_steps=1,
+            callbacks=[checkpoint_callback, lr_monitor, PrintLearningRate()],
+        )
+
+    if config["mixed_precision"] is True:
+        print("Mixed precision training is activated.")
+    else:
+        print("Mixed precision training is not activated.")
+
+    for epoch in range(config["max_epochs"]):
+        trainer.fit(
+            model=pymodel_SCHNET,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
+        )
+        torch.cuda.empty_cache()
 
     checkpoint_path = checkpoint_callback.best_model_path
 
@@ -101,23 +143,36 @@ def main(config_dir):
     # load dataframe with calculated data
 
 
+class PrintLearningRate(pl.Callback):
+    def on_train_epoch_start(self, trainer, pl_module):
+        lr = trainer.optimizers[0].param_groups[0]['lr']
+        print(f'Learning Rate for Epoch {trainer.current_epoch}: {lr:.5e}')
+
+
 class Pymodel(pl.LightningModule):
-    def __init__(self, model, graph_pred_linear):
+    def __init__(self, model, graph_pred_linear, config):
         super().__init__()
         self.save_hyperparameters(ignore=['graph_pred_linear', 'model'])
         self.molecule_3D_repr = model
         self.graph_pred_linear = graph_pred_linear
+        self.config = config
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
-        loss = self._get_preds_loss_accuracy(batch)
+        with torch.cuda.amp.autocast(enabled=self.trainer.precision == 16): # 16-bit precision for mixed precision training, activated only when self.trainer.precision == 16
+            loss = self._get_preds_loss_accuracy(batch)
+        
+        lr = self.trainer.optimizers[0].param_groups[0]['lr']
 
         self.log("train_loss", loss, batch_size=batch.size(0))
+        self.log('lr', lr, on_step=False, on_epoch=True, prog_bar=False, logger=True, batch_size=batch.size(0))
+
         return loss
 
     def validation_step(self, batch, batch_idx):
         """used for logging metrics"""
-        loss = self._get_preds_loss_accuracy(batch)
+        with torch.cuda.amp.autocast(enabled=self.trainer.precision == 16): # 16-bit precision for mixed precision training, activated only when self.trainer.precision == 16
+            loss = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
         self.log("val_loss", loss, batch_size=batch.size(0))
@@ -126,7 +181,6 @@ class Pymodel(pl.LightningModule):
     def _get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid/test steps are similar"""
         batch = batch.to(self.device)
-        model_name = type(self.molecule_3D_repr).__name__
         z = self.forward(batch)
 
         if self.graph_pred_linear is not None:
@@ -136,12 +190,44 @@ class Pymodel(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
-        return optimizer
+        # set up optimizer
+        config = self.config
+        optimizer = torch.optim.Adam(self.parameters(), lr=config["lr"])
+
+        lr_scheduler = None
+        if config["lr_scheduler"] == "CosineAnnealingLR":
+            lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, config["max_epochs"]
+            )
+            print("Apply lr scheduler CosineAnnealingLR")
+        elif config["lr_scheduler"] == "CosineAnnealingWarmRestarts":
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                optimizer, config["max_epochs"], eta_min=1e-4
+            )
+            print("Apply lr scheduler CosineAnnealingWarmRestarts")
+        elif config["lr_scheduler"] == "StepLR":
+            lr_scheduler = optim.lr_scheduler.StepLR(
+                optimizer, step_size=config["lr_decay_step_size"], gamma=config["lr_decay_factor"]
+            )
+            print("Apply lr scheduler StepLR")
+        elif config["lr_scheduler"] == "ReduceLROnPlateau":
+            lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, factor=config["lr_decay_factor"], patience=config["lr_decay_patience"], min_lr=config["min_lr"]
+            )
+            print("Apply lr scheduler ReduceLROnPlateau")
+        else:
+            print("lr scheduler {} is not included.")
+
+        return [optimizer], [lr_scheduler]
+
+        # optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
+        # return optimizer
     
     def forward(self, batch):
         batch = batch.to(self.device)
         model_name = type(self.molecule_3D_repr).__name__
+        if model_name == "EquiformerEnergy":
+            model_name = "Equiformer"
 
         if self.graph_pred_linear is not None:
             if model_name == "PaiNN":
@@ -154,11 +240,10 @@ class Pymodel(pl.LightningModule):
             if model_name == "GemNet":
                 z = self.molecule_3D_repr(batch.x, batch.positions, batch).squeeze()
             elif model_name == "Equiformer":
-                z = self.molecule_3D_repr(node_atom=batch.x, pos=batch.positions, batch=batch.batch)
+                z = self.molecule_3D_repr(node_atom=batch.x, pos=batch.positions, batch=batch.batch).squeeze()
             else:
                 z = self.molecule_3D_repr(batch.x, batch.positions, batch.batch).squeeze()
         return z
-
 
 def model_setup(config):
     model_config = config["model"]
@@ -279,19 +364,34 @@ def model_setup(config):
         if config["model"]["Equiformer_hyperparameter"] == 0:
             # This follows the hyper in Equiformer_l2
             model = EquiformerEnergy(
+                # irreps_in=model_config["Equiformer_irreps_in"],
+                # max_radius=model_config["Equiformer_radius"],
+                # node_class=model_config["node_class"],
+                # number_of_basis=model_config["Equiformer_num_basis"], 
+                # irreps_node_embedding='128x0e+64x1e+32x2e', 
+                # num_layers=6,
+                # irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
+                # fc_neurons=[64, 64], 
+                # irreps_feature='512x0e',
+                # irreps_head='32x0e+16x1e+8x2e', num_heads=4, irreps_pre_attn=None,
+                # rescale_degree=False, nonlinear_message=False,
+                # irreps_mlp_mid='384x0e+192x1e+96x2e',
+                # norm_layer='layer',
+                # alpha_drop=0.2, proj_drop=0.0, out_drop=0.0, drop_path_rate=0.0)
                 irreps_in=model_config["Equiformer_irreps_in"],
                 max_radius=model_config["Equiformer_radius"],
                 node_class=model_config["node_class"],
                 number_of_basis=model_config["Equiformer_num_basis"], 
-                irreps_node_embedding='128x0e+64x1e+32x2e', num_layers=6,
+                irreps_node_embedding='64x0e+32x1e+16x2e', 
+                num_layers=4,
                 irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
-                fc_neurons=[64, 64], 
-                irreps_feature='512x0e',
-                irreps_head='32x0e+16x1e+8x2e', num_heads=4, irreps_pre_attn=None,
+                fc_neurons=[32,32], 
+                irreps_feature='256x0e',
+                irreps_head='32x0e+16x1e+8x2e', num_heads=2, irreps_pre_attn=None,
                 rescale_degree=False, nonlinear_message=False,
-                irreps_mlp_mid='384x0e+192x1e+96x2e',
+                irreps_mlp_mid='192x0e+96x1e+48x2e',
                 norm_layer='layer',
-                alpha_drop=0.2, proj_drop=0.0, out_drop=0.0, drop_path_rate=0.0)
+                alpha_drop=0.3, proj_drop=0.1, out_drop=0.1, drop_path_rate=0.1)
         elif config["model"]["Equiformer_hyperparameter"] == 1:
             # This follows the hyper in Equiformer_nonlinear_bessel_l2_drop00
             model = EquiformerEnergy(
@@ -299,7 +399,8 @@ def model_setup(config):
                 max_radius=model_config["Equiformer_radius"],
                 node_class=model_config["node_class"],
                 number_of_basis=model_config["Equiformer_num_basis"], 
-                irreps_node_embedding='128x0e+64x1e+32x2e', num_layers=6,
+                irreps_node_embedding='128x0e+64x1e+32x2e', 
+                num_layers=6,
                 irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
                 fc_neurons=[64, 64], basis_type='bessel',
                 irreps_feature='512x0e',
@@ -315,6 +416,17 @@ def model_setup(config):
     
     return model, graph_pred_linear
 
+# function to initialize distributed training
+def init_distributed_training():
+    rank = int(os.environ.get('RANK', '0'))
+    torch.cuda.set_device(rank)
+    dist.init_process_group(backend='nccl', init_method='env://')
+    print(f"Distributed training - GPU {rank + 1}/{torch.cuda.device_count()}")
+
+    return dist.get_world_size(), rank
+
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
     root = os.getcwd()
@@ -327,4 +439,7 @@ if __name__ == "__main__":
     )
     args = argparser.parse_args()
     config_dir = args.config_dir
-    main(config_dir=config_dir)
+
+    # Initialize distributed training
+    if dist.is_initialized():
+        main(config_dir=config_dir)
