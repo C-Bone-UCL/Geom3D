@@ -7,7 +7,7 @@ def read_config(dir):
         config = load_config(dir)
         print("config loaded from", dir)
     else:
-# Set parameters
+        # Set parameters
         config = dict()
         config["seed"] = 42
         config["save_dataset"] = False
@@ -32,36 +32,31 @@ def read_config(dir):
         config["load_dataset"] = False
         config["dataset_path"] = ""
         config["dataset_path_frag"] = ""
-
-        # prompt the user to enter model name
+        config["target_name"] = "combined"
         config["model_name"] = "SchNet"
+        config["mixed_precision"] = False
 
-        if config["model_name"] == "SchNet":
-            config["model"] = dict()
-            config["model"]["node_class"] = 119
-            config["model"]["edge_class"] = 5
-            config["model"]["num_tasks"] = 1
-            config["model"]["emb_dim"] = 128
-            config["model"]["SchNet_num_filters"] = 128
-            config["model"]["SchNet_num_interactions"] = 6
-            config["model"]["SchNet_num_gaussians"] = 51
-            config["model"]["SchNet_cutoff"] = 10
-            config["model"]["SchNet_readout"] = "mean"
+        config["fragment_cluster_threshold"] = 0.55
+        config["test_set_fragment_cluster"] = 6
 
-        elif config["model_name"] == "DimeNet":
-            config["model"] = dict()
-            config["model"]["node_class"] = 119
-            config["model"]["hidden_channels"] = 300
-            config["model"]["out_channels"] = 1
-            config["model"]["num_blocks"] = 6
-            config["model"]["num_bilinear"] = 8
-            config["model"]["num_spherical"] = 7
-            config["model"]["num_radial"] = 6
-            config["model"]["cutoff"] = 10.0
-            config["model"]["envelope_exponent"] = 5
-            config["model"]["num_before_skip"] = 1
-            config["model"]["num_after_skip"] = 2
-            config["model"]["num_output_layers"] = 3
+        config["oligomer_min_cluster_size"] = 750,
+        config["oligomer_min_samples"] = 50,
+        config["test_set_oligomer_cluster"] = 6
+
+        config["lr"] = 5e-4
+        config["lr_scale"] = 1
+        config["decay"] = 0
+        config["lr_scheduler"] = "CosineAnnealingLR"
+        config["lr_decay_factor"] = 0.5
+        config["lr_decay_step_size"] = 100
+        config["lr_decay_patience"] = 50
+        config["min_lr"] = 1e-6
+
+        config["split"] = "random"
+
+        config["hp_search"] = False
+        config["max_epochs_hp_search"] = 1
+        config["n_trials_hp_search"] = 1
 
         save_config(config, dir)
         print("config saved to", dir)

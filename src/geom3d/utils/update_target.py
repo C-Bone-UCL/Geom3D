@@ -29,7 +29,7 @@ def update_target_in_dataset(dataset, new_targets):
 
 def main():
     # Load the original dataset
-    original_dataset_path = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/80Kdataset.pt"
+    original_dataset_path = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/80Kdataset_radius.pt"
     dataset = torch.load(original_dataset_path)
     print("Original dataset loaded")
 
@@ -58,7 +58,7 @@ def main():
     update_target_in_dataset(dataset, targets_IP)
     
     # Save the dataset with new targets
-    new_dataset_path_IP = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_IP.pt"
+    new_dataset_path_IP = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_radius_IP.pt"
     torch.save(dataset, new_dataset_path_IP)
     print(f"New dataset saved: {new_dataset_path_IP}")
 
@@ -66,7 +66,7 @@ def main():
     update_target_in_dataset(dataset, targets_ES1)
     
     # Save the dataset with new targets
-    new_dataset_path_ES1 = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_ES1.pt"
+    new_dataset_path_ES1 = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_radius_ES1.pt"
     torch.save(dataset, new_dataset_path_ES1)
     print(f"New dataset saved: {new_dataset_path_ES1}")
 
@@ -74,7 +74,7 @@ def main():
     update_target_in_dataset(dataset, targets_fosc1)
     
     # Save the dataset with new targets
-    new_dataset_path_fosc1 = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_fosc1.pt"
+    new_dataset_path_fosc1 = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_radius_fosc1.pt"
     torch.save(dataset, new_dataset_path_fosc1)
     print(f"New dataset saved: {new_dataset_path_fosc1}")
 

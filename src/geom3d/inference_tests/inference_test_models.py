@@ -10,6 +10,10 @@ from geom3d import train_models
 from geom3d.train_models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet, SphereNetPeriodic, PaiNN, Pymodel
 from geom3d.train_models import read_config, load_data, train_val_test_split, model_setup
 import importlib
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
 
 importlib.reload(train_models)
 
@@ -39,7 +43,7 @@ def plot_training_results(chkpt_path, config_dir):
     print("Model loaded: ", config["model_name"])
     
     # Pass the model and graph_pred_linear to the Pymodel constructor
-    pymodel = Pymodel(model, graph_pred_linear)
+    pymodel = Pymodel(model, graph_pred_linear, config)
 
     # Load the state dictionary
     pymodel.load_state_dict(state_dict=checkpoint['state_dict'])
@@ -66,28 +70,56 @@ def plot_training_results(chkpt_path, config_dir):
     # print('y_pred', pymodel(dataset[0].to(config["device"])))
 
     train_loader, val_loader, test_loader = train_val_test_split(
-        dataset, config=config
+        dataset, config=config, batch_size=config["batch_size"]
     )
     
     #%matplotlib inline
-    import matplotlib.pyplot as plt
+
     print("pymodel device", pymodel.device)
-    fig, axis = plt.subplots(1,3, figsize=(15,5))
-    for id,loader in enumerate([train_loader, val_loader, test_loader]):
+    print("Target: ", config["target_name"])
+
+    # Get the y values from the dataset for setting plot axes
+    y_values = [data.y for data in dataset]
+    y_min = min(y_values)
+    y_max = max(y_values)
+
+
+    fig, axis = plt.subplots(1, 3, figsize=(15, 5))
+    for id, loader in enumerate([train_loader, val_loader, test_loader]):
         axis[id].set_ylabel('y_pred')
         axis[id].set_xlabel('y_true')
-        
+        axis[id].set_xlim(y_min, y_max)  # Set x-axis limits based on min and max y values
+        axis[id].set_ylim(y_min, y_max)  # Set y-axis limits based on min and max y values
+
         for x in loader:
             with torch.no_grad():
                 Y_pred = pymodel(x.to(config["device"]))
             break
-        axis[id].scatter( x.y.to('cpu'),Y_pred.to('cpu').detach(),)
-        axis[id].plot(x.y.to('cpu'),x.y.to('cpu'))
+        axis[id].scatter(x.y.to('cpu'), Y_pred.to('cpu').detach())
+        axis[id].plot(x.y.to('cpu'), x.y.to('cpu'))
         axis[id].set_title(['train set', 'validation set', 'test set'][id])
     plt.show()
     plt.savefig('training_results.png')
+
+    # calculate the mean absolute error
+    y_true = []
+    y_pred = []
+    for x in test_loader:
+        with torch.no_grad():
+            Y_pred = pymodel(x.to(config["device"]))
+        y_true.append(x.y.to('cpu'))
+        y_pred.append(Y_pred.to('cpu').detach())
+    y_true = torch.cat(y_true)
+    y_pred = torch.cat(y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    print('Mean Absolute Error (MAE) on test_set:', mae)
+
+    # calculate the root mean squared error
+    from math import sqrt
+    rmse = sqrt(mean_squared_error(y_true, y_pred))
+    print('Root Mean Squared Error (RMSE) on test_set:', rmse)
     
-    return train_loader
+    return train_loader, mae, rmse
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
