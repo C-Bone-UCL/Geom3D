@@ -30,52 +30,8 @@ def model_setup(config, trial=None):
     model_config = config["model"]
     
     if trial:
-        batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
-        config["batch_size"] = batch_size
-        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
-        config["lr_scheduler"] = lr_scheduler
+        config = hyperparameter_setup(config, trial)
 
-        if config["model_name"] == "SchNet":
-            emb_dim = trial.suggest_int("emb_dim", low=16, high=240, step=32)
-            SchNet_cutoff = trial.suggest_int("SchNet_cutoff", low=2, high=10, step=1)
-            config["model"]["emb_dim"] = emb_dim
-            config["model"]["SchNet_cutoff"] = SchNet_cutoff
-
-        elif config["model_name"] == "DimeNet":
-            hidden_channels = trial.suggest_categorical("hidden_channels", [128, 300])
-            num_output_layers = trial.suggest_int("num_output_layers", 2, 4)
-            config["model"]["hidden_channels"] = hidden_channels
-            config["model"]["num_output_layers"] = num_output_layers
-
-        elif config["model_name"] == "DimeNetPlusPlus":
-            hidden_channels = trial.suggest_categorical("hidden_channels", [128, 300])
-            num_output_layers = trial.suggest_int("num_output_layers", 2, 4)
-            config["model"]["hidden_channels"] = hidden_channels
-            config["model"]["num_output_layers"] = num_output_layers
-
-        elif config["model_name"] == "GemNet":
-            num_blocks = trial.suggest_int("num_blocks", 3, 5)
-            config["model"]["num_blocks"] = num_blocks
-
-        elif config["model_name"] == "SphereNet":
-            hidden_channels = trial.suggest_categorical("hidden_channels", [128, 320])
-            num_layers = trial.suggest_int("num_layers", 3, 5)
-            out_channels = trial.suggest_int("out_channels", 1, 3)
-            config["model"]["hidden_channels"] = hidden_channels
-            config["model"]["num_layers"] = num_layers
-            config["model"]["out_channels"] = out_channels
-
-        elif config["model_name"] == "PaiNN":
-            n_atom_basis = trial.suggest_categorical("n_atom_basis", [32, 64, 128, 256])
-            cutoff = trial.suggest_int("cutoff", 2, 10)
-            config["model"]["n_atom_basis"] = n_atom_basis
-            config["model"]["cutoff"] = cutoff
-
-        elif config["model_name"] == "Equiformer":
-            num_layers = trial.suggest_int("Equiformer_num_layers", 3, 5)
-            config["model"]["num_layers"] = num_layers
-
-    
     if config["model_name"] == "SchNet":
         model = SchNet(
             hidden_channels=model_config["emb_dim"],
@@ -197,30 +153,16 @@ def model_setup(config, trial=None):
                 max_radius=model_config["Equiformer_radius"],
                 node_class=model_config["node_class"],
                 number_of_basis=model_config["Equiformer_num_basis"], 
-                irreps_node_embedding='128x0e+64x1e+32x2e', 
+                irreps_node_embedding=model_config["irreps_node_embedding"], 
                 num_layers=6,
                 irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
-                fc_neurons=[64, 64], 
-                irreps_feature='512x0e',
-                irreps_head='32x0e+16x1e+8x2e', num_heads=4, irreps_pre_attn=None,
+                fc_neurons=[32,32], 
+                irreps_feature='256x0e',
+                irreps_head='32x0e+16x1e+8x2e', num_heads=2, irreps_pre_attn=None,
                 rescale_degree=False, nonlinear_message=False,
-                irreps_mlp_mid='384x0e+192x1e+96x2e',
+                irreps_mlp_mid='192x0e+96x1e+48x2e',
                 norm_layer='layer',
-                alpha_drop=0.2, proj_drop=0.0, out_drop=0.0, drop_path_rate=0.0)
-                # irreps_in=model_config["Equiformer_irreps_in"],
-                # max_radius=model_config["Equiformer_radius"],
-                # node_class=model_config["node_class"],
-                # number_of_basis=model_config["Equiformer_num_basis"], 
-                # irreps_node_embedding='64x0e+32x1e+16x2e', 
-                # num_layers=4,
-                # irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
-                # fc_neurons=[32,32], 
-                # irreps_feature='256x0e',
-                # irreps_head='32x0e+16x1e+8x2e', num_heads=2, irreps_pre_attn=None,
-                # rescale_degree=False, nonlinear_message=False,
-                # irreps_mlp_mid='192x0e+96x1e+48x2e',
-                # norm_layer='layer',
-                # alpha_drop=0.3, proj_drop=0.1, out_drop=0.1, drop_path_rate=0.1)
+                alpha_drop=0.3, proj_drop=0.1, out_drop=0.1, drop_path_rate=0.1)
         elif config["model"]["Equiformer_hyperparameter"] == 1:
             # This follows the hyper in Equiformer_nonlinear_bessel_l2_drop00
             model = EquiformerEnergy(
@@ -228,7 +170,7 @@ def model_setup(config, trial=None):
                 max_radius=model_config["Equiformer_radius"],
                 node_class=model_config["node_class"],
                 number_of_basis=model_config["Equiformer_num_basis"], 
-                irreps_node_embedding='128x0e+64x1e+32x2e', 
+                irreps_node_embedding=model_config["irreps_node_embedding"], 
                 num_layers=6,
                 irreps_node_attr='1x0e', irreps_sh='1x0e+1x1e+1x2e',
                 fc_neurons=[64, 64], basis_type='bessel',
@@ -244,3 +186,94 @@ def model_setup(config, trial=None):
         raise ValueError("Invalid model name")
     
     return model, graph_pred_linear
+
+def hyperparameter_setup(config, trial):
+
+    if config["model_name"] == "SchNet":
+        batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        emb_dim = trial.suggest_int("emb_dim", low=16, high=240, step=32)
+        SchNet_cutoff = trial.suggest_int("SchNet_cutoff", low=2, high=10, step=1)
+        num_interactions = trial.suggest_int("num_interactions", low=3, high=9, step=1)
+        config["model"]["emb_dim"] = emb_dim
+        config["model"]["SchNet_cutoff"] = SchNet_cutoff
+        config["model"]["SchNet_num_interactions"] = num_interactions
+
+    elif config["model_name"] == "DimeNet":
+        batch_size = trial.suggest_int('batch_size', low=4, high=20, step=4)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        hidden_channels = trial.suggest_categorical("hidden_channels", [32, 64, 128])
+        cutoff = trial.suggest_int("cutoff", 2, 5)
+        num_blocks = trial.suggest_int("num_blocks", 3,9)
+        config["model"]["hidden_channels"] = hidden_channels
+        config["model"]["cutoff"] = cutoff
+        config["model"]["num_blocks"] = num_blocks
+
+    elif config["model_name"] == "DimeNetPlusPlus":
+        batch_size = trial.suggest_int('batch_size', low=16, high=64, step=16)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        hidden_channels = trial.suggest_categorical("hidden_channels", [32, 64, 128])
+        cutoff = trial.suggest_int("cutoff", 2, 8)
+        num_blocks = trial.suggest_int("num_blocks", 3,9)
+        config["model"]["hidden_channels"] = hidden_channels
+        config["model"]["cutoff"] = cutoff
+        config["model"]["num_blocks"] = num_blocks
+
+    elif config["model_name"] == "GemNet":
+        batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        
+        num_blocks = trial.suggest_int("num_blocks", 3, 5)
+        config["model"]["num_blocks"] = num_blocks
+
+    elif config["model_name"] == "SphereNet":
+        batch_size = trial.suggest_int('batch_size', low=4, high=20, step=4)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        
+        hidden_channels = trial.suggest_categorical("hidden_channels", [32, 64, 128])
+        cutoff = trial.suggest_int("cutoff", 2, 6)
+        num_layers = trial.suggest_int("num_layers", 3, 5)
+        num_spherical = trial.suggest_int("num_spherical", low=3, high=7, step=2)
+        config["model"]["hidden_channels"] = hidden_channels
+        config["model"]["cutoff"] = cutoff
+        config["model"]["num_layers"] = num_layers
+        config["model"]["num_spherical"] = num_spherical
+
+    elif config["model_name"] == "PaiNN":
+        batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler
+        
+        n_atom_basis = trial.suggest_categorical("n_atom_basis", [32, 64, 128, 256])
+        cutoff = trial.suggest_int("cutoff", 2, 10)
+        n_interactions = trial.suggest_int("n_interactions", 3, 9)
+        config["model"]["n_atom_basis"] = n_atom_basis
+        config["model"]["cutoff"] = cutoff
+        config["model"]["n_interactions"] = n_interactions
+
+    elif config["model_name"] == "Equiformer":
+        batch_size = trial.suggest_int('batch_size', low=4, high=24, step=4)
+        config["batch_size"] = batch_size
+        lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
+        config["lr_scheduler"] = lr_scheduler 
+        
+        Equiformer_num_basis = trial.suggest_int("Equiformer_num_basis", low=32, high=128, step=32)
+        Equiformer_radius = trial.suggest_int("Equiformer_radius", low=2, high=10, step=1)
+        irreps_node_embedding = trial.suggest_categorical("irreps_node_embedding", ["64x0e+32x1e+16x2e", "128x0e+64x1e+32x2e", "32x0e+16x1e+8x2e", "16x0e+8x1e+4x2e", "64x0e+16x1e+16x2e", "32x0e+16x1e+16x2e"])
+        config["model"]["Equiformer_num_basis"] = Equiformer_num_basis
+        config["model"]["Equiformer_radius"] = Equiformer_radius
+        config["model"]["irreps_node_embedding"] = irreps_node_embedding
+
+    return config
+

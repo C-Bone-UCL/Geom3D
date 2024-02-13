@@ -1,5 +1,3 @@
-""" script to turn a a dataset into custom target based split that puts the 10% best performing molecules in the test set """
-
 import os
 from collections import Counter
 from pathlib import Path
@@ -18,38 +16,53 @@ from tqdm import tqdm
 
 from geom3d.utils import database_utils
 
-def top_target_splitter(dataset, config):
+def cluster_target_splitter(dataset, config):
     """
     Split a dataset into a training and test set based on the target value.
     The 10% best performing molecules are put in the test set.
     """
-    if config["target_name"] == "combined":
-        ideal_value = 0
-    elif config["target_name"] == "IP":
-        ideal_value = 5.5
-    elif config["target_name"] == "ES1":
-        ideal_value = 3
-    elif config["target_name"] == "fosc1":
-        ideal_value = 10
-    else:
-        raise ValueError(f"Unknown target_name: {config['target_name']}")
-
-    print(f"splitting group {config['test_set_target_cluster']} 20% of dataset into equal val and test set. The target value is {config['target_name']}.")
-
-    # same logic but look at how far the value is from 0 and take the 10% closest to 10
+    print("top 10% in the test set. The target value is the combined score.")
+    # Get the target column 'y' from each dictionary in the list
     target = np.array([data['y'] for data in dataset])
-    distance = np.abs(target - ideal_value)
-    sorted_indices = np.argsort(distance)
 
-    chosen_set = sorted_indices[int(len(sorted_indices) * 0.2 * (config["test_set_target_cluster"] - 1)):int(len(sorted_indices) * 0.2 * config["test_set_target_cluster"])]
+    # Cluster the target values using HDBSCAN
+    clusterer = HDBSCAN(min_cluster_size=5)
+    clusters = clusterer.fit_predict(target.reshape(-1, 1))
 
-    np.random.shuffle(chosen_set)
+    # Choose one cluster to put in the test set (e.g., the cluster with the highest number of samples)
+    test_cluster = config["test_set_target_cluster"]
+    print(f"Test set cluster: {test_cluster}")
 
-    test_set = [dataset[i] for i in chosen_set]
+    # Get the indices of the molecules in the chosen cluster
+    test_indices = np.where(clusters == test_cluster)[0]
 
+    # find the InChIKeys of the test set
+    test_set = [dataset[i] for i in test_indices]
     test_set_inchikeys = [data["InChIKey"] for data in test_set]
-    
+
     return test_set_inchikeys
+
+# function to visualize the clusters showing the assigned number for each cluster, the axes should both be the target value
+def visualize_clusters(dataset, config):
+    """
+    Visualize the clusters of the target values.
+    """
+    # Get the target column 'y' from each dictionary in the list
+    target = np.array([data['y'] for data in dataset])
+
+    # Cluster the target values using HDBSCAN
+    clusterer = HDBSCAN(min_cluster_size=5)
+    clusters = clusterer.fit_predict(target.reshape(-1, 1))
+
+    # Plot the clusters with reduced number of pixels
+    plt.figure(figsize=(8, 6))
+    plt.scatter(target, target, c=clusters, cmap="viridis", hue=clusters, s=10)
+    plt.xlabel("Target value")
+    plt.ylabel("target")
+    plt.title("Clusters of target values")
+    plt.show()
+
+    return None
 
 def substructure_analysis_top_target(dataset, config):
     df_path = Path(
@@ -122,3 +135,4 @@ def substructure_analysis_top_target(dataset, config):
         print(f"Top {i + 1} Substructure (Frequency: {count} oligomers):")
         img = Draw.MolToImage(Chem.MolFromSmarts(substructure))
         display(img)
+

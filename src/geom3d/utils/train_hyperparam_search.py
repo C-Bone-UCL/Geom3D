@@ -44,7 +44,7 @@ from geom3d.models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet, S
 from geom3d.utils import database_utils
 from geom3d.utils import model_setup_utils
 from geom3d.utils.config_utils import read_config
-from geom3d.utils.model_setup_utils import model_setup
+from geom3d.utils.model_setup_utils import model_setup, hyperparameter_setup
 from geom3d.pymodel import Pymodel, PrintLearningRate
 
 importlib.reload(models)
@@ -55,50 +55,7 @@ importlib.reload(model_setup_utils)
 def objective(trial, config_dir):
     config = read_config(config_dir)
 
-    batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
-    config["batch_size"] = batch_size
-    lr_scheduler = trial.suggest_categorical("lr_scheduler", ["CosineAnnealingLR", "CosineAnnealingWarmRestarts", "StepLR"])
-    config["lr_scheduler"] = lr_scheduler
-
-    if config["model_name"] == "SchNet":
-        emb_dim = trial.suggest_int("emb_dim", low=16, high=240, step=32)
-        SchNet_cutoff = trial.suggest_int("SchNet_cutoff", low=2, high=10, step=1)
-        config["model"]["emb_dim"] = emb_dim
-        config["model"]["SchNet_cutoff"] = SchNet_cutoff
-
-    elif config["model_name"] == "DimeNet":
-        hidden_channels = trial.suggest_categorical("hidden_channels", [128, 300])
-        num_output_layers = trial.suggest_int("num_output_layers", 2, 4)
-        config["model"]["hidden_channels"] = hidden_channels
-        config["model"]["num_output_layers"] = num_output_layers
-
-    elif config["model_name"] == "DimeNetPlusPlus":
-        hidden_channels = trial.suggest_categorical("hidden_channels", [128, 300])
-        num_output_layers = trial.suggest_int("num_output_layers", 2, 4)
-        config["model"]["hidden_channels"] = hidden_channels
-        config["model"]["num_output_layers"] = num_output_layers
-
-    elif config["model_name"] == "GemNet":
-        num_blocks = trial.suggest_int("num_blocks", 3, 5)
-        config["model"]["num_blocks"] = num_blocks
-
-    elif config["model_name"] == "SphereNet":
-        hidden_channels = trial.suggest_categorical("hidden_channels", [128, 320])
-        num_layers = trial.suggest_int("num_layers", 3, 5)
-        out_channels = trial.suggest_int("out_channels", 1, 3)
-        config["model"]["hidden_channels"] = hidden_channels
-        config["model"]["num_layers"] = num_layers
-        config["model"]["out_channels"] = out_channels
-
-    elif config["model_name"] == "PaiNN":
-        n_atom_basis = trial.suggest_categorical("n_atom_basis", [32, 64, 128, 256])
-        cutoff = trial.suggest_int("cutoff", 2, 10)
-        config["model"]["n_atom_basis"] = n_atom_basis
-        config["model"]["cutoff"] = cutoff
-
-    elif config["model_name"] == "Equiformer":
-        num_layers = trial.suggest_int("Equiformer_num_layers", 3, 5)
-        config["model"]["num_layers"] = num_layers
+    config = hyperparameter_setup(config, trial)
 
     np.random.seed(config["seed"])
     torch.cuda.manual_seed_all(config["seed"])

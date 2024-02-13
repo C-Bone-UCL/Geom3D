@@ -15,239 +15,63 @@ from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
 from sklearn.decomposition import PCA
 from sklearn.cluster import HDBSCAN
 from tqdm import tqdm
+import torch
 
 from geom3d.utils import database_utils
 
 
 def oligomer_scaffold_splitter(dataset, config):
-    df_path = Path(
-        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
-    )
-    df_precursors_path = Path(
-        config["STK_path"],
-        "data/output/Prescursor_data/",
-        config["df_precursor"],
-    )
+    df_total, df_precursors = load_dataframes(dataset, config)
 
-    df_total, df_precursors = database_utils.load_data_from_file(
-        df_path, df_precursors_path
-    )
-
-    y_IP = df_total['ionisation potential (eV)'].values
-    X_6mer_inch = df_total['BB'].values
-    X_frag_mol = df_precursors['mol_opt'].values
-    X_frag_inch = df_precursors['InChIKey'].values
-    keys_6mer = df_total['InChIKey'].values
-
-    # Generate Morgan fingerprints for the dataset
-    morgan_fingerprints = generate_morgan_fingerprints(X_frag_mol)
-
-    # make a list of the InChiKeys in the dataset
-    morgan_fingerprints = [list(morgan_fingerprints[i]) for i in range(len(X_frag_mol))]
-
-    # Number of components you want to retain after PCA
-    n_components = 2  # You can change this based on your requirements
-
-    # Perform PCA on the Morgan fingerprints
-    pca = PCA(n_components=n_components)
-    pca_scores = pca.fit_transform(morgan_fingerprints)
-
-    # Create a list to store average PCA scores for each row in df_total
-    average_pca_scores = []
-
-    # Define the total number of iterations
-    total_iterations = len(df_total)
-
-    # Create a tqdm instance
-    for index, row in tqdm(df_total.iterrows(), total=total_iterations, desc="Calculating the average PCA score for each oligomer"):
-        row_pca_scores = []
-        error_keys = []
-        error = 0
-
-        # Extract InChIKeys from columns InChIKeys_0 to InChIKeys_5
-        for i in range(6):
-            inchkey = row[f'InChIKey_{i}']
-            # Check if the InChIKey is not None (assuming there are no missing values)
-            if inchkey is not None:
-                # Find the corresponding PCA score for the InChIKey if it exists
-                if inchkey in X_frag_inch:
-                    fragment_index = np.where(X_frag_inch == inchkey)[0][0]
-                    pca_score = pca_scores[fragment_index]
-                    row_pca_scores.append(pca_score)
-                else:
-                    # Handle the case where the InChIKey is not in X_frag_inch
-                    row_pca_scores.append(None)
-                    if inchkey not in error_keys:
-                        error_keys.append(inchkey)
-        
-        # Ensure that all arrays in row_pca_scores have the same shape
-        row_pca_scores = [score for score in row_pca_scores if score is not None and score.shape[0] == n_components]
-
-        # Calculate the average PCA score for the row
-        if row_pca_scores:
-            average_pca_score = np.mean(row_pca_scores, axis=0)
-            average_pca_scores.append(average_pca_score)
-        else:
-            # Handle the case where there are no valid InChIKeys for the row
-            average_pca_scores.append(None)
-            error += 1
-
-    # Convert the list of average PCA scores to a NumPy array
-    average_pca_scores_array = np.array(average_pca_scores)
-    print('Problematic keys:', error_keys)
-    print('Number of Oligomers not converted:', error)
+    check_data_exists(df_total, dataset, config)
 
     # Define HDBSCAN parameters (adjust as needed)
     min_cluster_size = config["oligomer_min_cluster_size"]  # Minimum size for a cluster to be considered valid
     min_samples = config["oligomer_min_samples"]  # Minimum number of points required to form a core point
 
     print('Clustering with min_cluster_size =', min_cluster_size, 'and min_samples =', min_samples)
-
     # Create a HDBSCAN instance
     hdb_model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-
-    # Fit the model to the average PCA scores
-    cluster_labels = hdb_model.fit_predict(average_pca_scores_array)
-
-    # Access the cluster assignments for each data point and keys_6mer
-    cluster_assignments = dict(zip(keys_6mer, cluster_labels))
-
+    # Fit the model to the average PCA scores from the df_total['2d_tani_pca_1'] and df_total['2d_tani_pca_2']
+    cluster_labels = hdb_model.fit_predict(df_total[['2d_tani_pca_1', '2d_tani_pca_2']])
+    print('Clustered', len(cluster_labels), 'oligomers')
+    # assign the cluster labels to the InChIKeys in df_total
+    df_total['Cluster'] = cluster_labels
+    cluster_assignments = dict(zip(df_total['InChIKey'], df_total['Cluster']))
+    
+    # print the number of oligomers in each cluster
     chosen_cluster = config["test_set_oligomer_cluster"]  # Choose the cluster you want to use for the test set
-
+    print(f"Chosen cluster: {chosen_cluster}")
     cluster_keys = []
     for key, value in cluster_assignments.items():
         if value == chosen_cluster:
             cluster_keys.append(key)
-
     print(f"Length of Cluster {chosen_cluster}: {len(cluster_keys)}")
 
     return cluster_keys
 
 
-# Function to generate Morgan fingerprints
-def generate_morgan_fingerprints(molecules, radius=2, n_bits=2048):
-    fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits) for mol in molecules]
-    return fingerprints
-
-
-# Function to generate ECFP fingerprints
-def generate_ecfp_fingerprints(molecules, radius=2, n_bits=2048):
-    fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits) for mol in molecules]
-    return fingerprints
-
-
-# Function to calculate Tanimoto similarity between fingerprints
-def calculate_tanimoto_similarity(fingerprint1, fingerprint2):
-    return DataStructs.TanimotoSimilarity(fingerprint1, fingerprint2)
-
-def prepare_oligomer_plot(dataset, config):
-    df_path = Path(
-        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
-    )
-    df_precursors_path = Path(
-        config["STK_path"],
-        "data/output/Prescursor_data/",
-        config["df_precursor"],
-    )
-
-    df_total, df_precursors = database_utils.load_data_from_file(
-        df_path, df_precursors_path
-    )
-
-    y_IP = df_total['ionisation potential (eV)'].values
-    X_6mer_inch = df_total['BB'].values
-    X_frag_mol = df_precursors['mol_opt'].values
-    X_frag_inch = df_precursors['InChIKey'].values
-    keys_6mer = df_total['InChIKey'].values
-
-    # Generate Morgan fingerprints for the dataset
-    morgan_fingerprints = generate_morgan_fingerprints(X_frag_mol)
-
-    # make a list of the InChiKeys in the dataset
-    morgan_fingerprints = [list(morgan_fingerprints[i]) for i in range(len(X_frag_mol))]
-
-    # Number of components you want to retain after PCA
-    n_components = 2  # You can change this based on your requirements
-
-    # Perform PCA on the Morgan fingerprints
-    pca = PCA(n_components=n_components)
-    pca_scores = pca.fit_transform(morgan_fingerprints)
-
-    # Create a list to store average PCA scores for each row in df_total
-    average_pca_scores = []
-
-    # Define the total number of iterations
-    total_iterations = len(df_total)
-
-    # Create a tqdm instance
-    for index, row in tqdm(df_total.iterrows(), total=total_iterations, desc="Calculating the average PCA score for each oligomer"):
-        row_pca_scores = []
-        error_keys = []
-        error = 0
-
-        # Extract InChIKeys from columns InChIKeys_0 to InChIKeys_5
-        for i in range(6):
-            inchkey = row[f'InChIKey_{i}']
-            # Check if the InChIKey is not None (assuming there are no missing values)
-            if inchkey is not None:
-                # Find the corresponding PCA score for the InChIKey if it exists
-                if inchkey in X_frag_inch:
-                    fragment_index = np.where(X_frag_inch == inchkey)[0][0]
-                    pca_score = pca_scores[fragment_index]
-                    row_pca_scores.append(pca_score)
-                else:
-                    # Handle the case where the InChIKey is not in X_frag_inch
-                    row_pca_scores.append(None)
-                    if inchkey not in error_keys:
-                        error_keys.append(inchkey)
-        
-        # Ensure that all arrays in row_pca_scores have the same shape
-        row_pca_scores = [score for score in row_pca_scores if score is not None and score.shape[0] == n_components]
-
-        # Calculate the average PCA score for the row
-        if row_pca_scores:
-            average_pca_score = np.mean(row_pca_scores, axis=0)
-            average_pca_scores.append(average_pca_score)
-        else:
-            # Handle the case where there are no valid InChIKeys for the row
-            average_pca_scores.append(None)
-            error += 1
-
-    # Convert the list of average PCA scores to a NumPy array
-    average_pca_scores_array = np.array(average_pca_scores)
-    print('Problematic keys:', error_keys)
-    print('Number of Oligomers not converted:', error)
-    print('PCA scores converted')
-
-    return average_pca_scores_array, keys_6mer
-
-
 def cluster_analysis(dataset, config, min_cluster_size=750, min_samples=50):
-
-    average_pca_scores_array, keys_6mer  = prepare_oligomer_plot(dataset, config)
-
-    # min_cluster_size = 750  # Minimum size for a cluster to be considered valid
-    # min_samples = 50  # Minimum number of points required to form a core point
-
+    df_total, df_precursors = load_dataframes(dataset, config)
+    check_data_exists(df_total, dataset, config)
+    
     print('Clustering with min_cluster_size =', min_cluster_size, 'and min_samples =', min_samples)
-
     # Create a HDBSCAN instance
     hdb_model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-
     # Fit the model to the average PCA scores
-    cluster_labels = hdb_model.fit_predict(average_pca_scores_array)
+    cluster_labels = hdb_model.fit_predict(df_total[['2d_tani_pca_1', '2d_tani_pca_2']])
 
-    counter = Counter(cluster_labels)
+    # print how many clusters there are and how many oligomers are in each cluster
+    print('Number of clusters:', len(set(cluster_labels)))
+    print('Number of oligomers in each cluster:')
+    print(df_total['Cluster'].value_counts())
 
-    print("Cluster split and amount of Oligomers in each:", counter)
-
-    return cluster_labels
+    return
 
 
 def pca_plot(dataset, config):
-    
-    # Calculate average PCA scores and cluster labels
-    average_pca_scores_array, keys_6mer  = prepare_oligomer_plot(dataset, config)
+    df_total, df_precursors = load_dataframes(dataset, config)
+    check_data_exists(df_total, dataset, config)
 
     min_cluster_size = config["oligomer_min_cluster_size"]  # Minimum size for a cluster to be considered valid
     min_samples = config["oligomer_min_samples"]  # Minimum number of points required to form a core point
@@ -255,56 +79,36 @@ def pca_plot(dataset, config):
     print('Clustering with min_cluster_size =', min_cluster_size, 'and min_samples =', min_samples)
     # Create a HDBSCAN instance
     hdb_model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-
     # Fit the model to the average PCA scores
-    cluster_labels = hdb_model.fit_predict(average_pca_scores_array)
-
+    cluster_labels = hdb_model.fit_predict(df_total[['2d_tani_pca_1', '2d_tani_pca_2']])
+    # assign the cluster labels to the InChIKeys in df_total
+    df_total['Cluster'] = cluster_labels
     selected_cluster = config["test_set_oligomer_cluster"]  # Choose the cluster you want to use for the test set
-
-    # Filter out the labels in the selected cluster
-    df_selected_cluster = pd.DataFrame({
-        'PCA1': average_pca_scores_array[:, 0],
-        'PCA2': average_pca_scores_array[:, 1],
-        'Cluster': cluster_labels
-    })
 
     # Plot all clusters
     plt.figure(figsize=(10, 10))
-    plt.scatter(df_selected_cluster['PCA1'], df_selected_cluster['PCA2'], c=df_selected_cluster['Cluster'], cmap='viridis', alpha=0.7)
-
+    plt.scatter(df_total['2d_tani_pca_1'], df_total['2d_tani_pca_2'], c=df_total['Cluster'], cmap='viridis', alpha=0.7)
     # Highlight the specific cluster
-    df_cluster_spec = df_selected_cluster[df_selected_cluster['Cluster'] == selected_cluster]
-    plt.scatter(df_cluster_spec['PCA1'], df_cluster_spec['PCA2'], c='red', label=f'Cluster {selected_cluster}', alpha=0.9)
-
+    df_cluster_spec = df_total[df_total['Cluster'] == selected_cluster]
+    plt.scatter(df_cluster_spec['2d_tani_pca_1'], df_cluster_spec['2d_tani_pca_2'], c='red', label=f'Cluster {selected_cluster}', alpha=0.9)
     plt.legend()
     plt.title("Clusters of oligomers based on average PCA scores")
     plt.xlabel("PC1")
     plt.ylabel("PC2")
     plt.show()
 
+    return
+
 
 # still to do for oligomer
-def substructure_analysis_oligomers(dataset, config, selected_cluster=6, min_cluster_size=750, min_samples=50):
-    df_path = Path(
-        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
-    )
-    df_precursors_path = Path(
-        config["STK_path"],
-        "data/output/Prescursor_data/",
-        config["df_precursor"],
-    )
-
-    df_total, df_precursors = database_utils.load_data_from_file(
-        df_path, df_precursors_path
-    )
+def substructure_analysis_oligomers(dataset, config, selected_cluster=1, min_cluster_size=750, min_samples=50):
+    df_total, df_precursors = load_dataframes(dataset, config)
     
     X_frag_mol = df_precursors['mol_opt'].values
     X_frag_inch = df_precursors['InChIKey'].values
     keys_6mer = df_total['InChIKey'].values
     
-    # Prepare data for oligomer analysis
-    average_pca_scores_array, keys_6mer = prepare_oligomer_plot(dataset, config)
-    print('PCA scores converted')
+    check_data_exists(df_total, dataset, config)
 
     # Clustering
     min_cluster_size = config["oligomer_min_cluster_size"]
@@ -313,10 +117,10 @@ def substructure_analysis_oligomers(dataset, config, selected_cluster=6, min_clu
     print('Clustering with min_cluster_size =', min_cluster_size, 'and min_samples =', min_samples)
 
     hdb_model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-    cluster_labels = hdb_model.fit_predict(average_pca_scores_array)
+    cluster_labels = hdb_model.fit_predict(df_total[['2d_tani_pca_1', '2d_tani_pca_2']])
     cluster_assignments = dict(zip(keys_6mer, cluster_labels))
 
-    selected_cluster = config["test_set_oligomer_cluster"]
+    selected_cluster = selected_cluster
     # Filter out the data points in the specified cluster
     selected_cluster_keys = [oligomer_key for oligomer_key, cluster_id in cluster_assignments.items() if cluster_id == selected_cluster]
 
@@ -377,3 +181,118 @@ def substructure_analysis_oligomers(dataset, config, selected_cluster=6, min_clu
         img = Draw.MolToImage(Chem.MolFromSmarts(substructure))
         display(img)
 
+
+def load_dataframes(dataset, config):
+    seed = config["seed"]
+    num_mols = len(dataset)
+    np.random.seed(seed)
+    
+    df_path = Path(
+        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
+    )
+    df_precursors_path = Path(
+        config["STK_path"],
+        "data/output/Prescursor_data/",
+        config["df_precursor"],
+    )
+
+    df_total, df_precursors = database_utils.load_data_from_file(
+        df_path, df_precursors_path
+    )
+
+    return df_total, df_precursors
+
+
+def check_data_exists(df_total, dataset, config):
+    # split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_mincluster_{config['oligomer_min_cluster_size']}_minsample_{config['oligomer_min_samples']}.csv"
+    # check if df_total['2d_tani_pca_1'] and df_total['2d_tani_pca_2'] exist, if not, calculate them
+    if '2d_tani_pca_1' in df_total.columns and '2d_tani_pca_2' in df_total.columns:
+        print("Dataset file found in df_total")
+
+    else:
+        generate_2d_PCA(dataset, config)
+
+    return
+
+
+def calculate_morgan_fingerprints(mols):
+    morgan_fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in mols]
+    return morgan_fps
+
+
+def calculate_tanimoto_similarity(fp1, fp2):
+    return DataStructs.TanimotoSimilarity(fp1, fp2)
+
+
+def generate_repr(df_total, df_precursors,frag_properties,idx=0):
+    init_rpr = []
+    frag_properties = frag_properties.union(['InChIKey'])
+    elements_curr = [[eval(df_total['BB'][x])[i]['InChIKey'] for i in range(6)] for x in idx]
+    elements_curr = pd.DataFrame(elements_curr, columns=[f'InChIKey_{x}' for x in range(6)])
+    num_frag = elements_curr.shape[1]
+    init_rpr = []
+    for i in range(num_frag):
+        elements_curr['InChIKey']=elements_curr[f'InChIKey_{i}'].astype(str)
+        df_eval = pd.merge(elements_curr,df_precursors[frag_properties], on='InChIKey', how='left', suffixes=('', f'_{i}'))
+        if len(init_rpr)==0:
+            init_rpr = df_eval[df_eval.columns[num_frag+1:]].values
+        else:
+            init_rpr = np.concatenate([init_rpr,df_eval[df_eval.columns[num_frag+1:]].values],axis=1)
+    print(init_rpr.shape)
+    X_explored_BO = torch.tensor(np.array(init_rpr.astype(float)), dtype=torch.float32)
+    print(X_explored_BO)
+
+    return X_explored_BO
+
+
+def generate_2d_PCA(dataset, config):
+    df_total, df_precursors = load_dataframes(dataset, config)
+
+    X_frag_mol = df_precursors['mol_opt'].values
+
+    print(f"Dataset file not found in df_total. Generating...")
+
+    morgan_fps = calculate_morgan_fingerprints(X_frag_mol)
+
+    tanimoto_sim = np.zeros((len(X_frag_mol), len(X_frag_mol)))
+    for i in range(len(X_frag_mol)):
+        for j in range(len(X_frag_mol)):
+            tanimoto_sim[i,j] = calculate_tanimoto_similarity(morgan_fps[i], morgan_fps[j])
+            tanimoto_sim[j,i] = tanimoto_sim[i,j]
+
+    # Number of components you want to retain after PCA
+    n_components = 7  # You can change this based on your requirements
+    # Perform PCA on the Morgan fingerprints
+    pca = PCA(n_components=n_components)
+    # can chage morgan_fps to tanimoto_sim
+    pca_scores = pca.fit_transform(tanimoto_sim) 
+    # Append PCA scores into 7 new columns in df_precursors
+    for i in range(n_components):
+        df_precursors[f'PCA_{i}'] = pca_scores[:, i]
+    oligomer_pca_scores_2 = generate_repr(df_total, df_precursors, df_precursors.columns[-7:], idx=range(len(df_total)))
+
+    # # find the indices of the NaN values in the pca scores
+    # nan_indices = np.argwhere(np.isnan(oligomer_pca_scores_2).any(axis=1)).flatten()
+
+    # make a dataframe with one column for each 42 pca score and then the first column is the InChIKey
+    df_pca_scores = pd.DataFrame(oligomer_pca_scores_2, columns=[f'PCA_{i}' for i in range(42)])
+    df_pca_scores['InChIKey'] = df_total['InChIKey']
+    # drop the rows with NaN values
+    df_pca_scores = df_pca_scores.dropna()
+    pca2 = PCA(n_components=2)
+
+    # Perform PCA on the first 42 columns of the dataframe
+    oligomer_pca_scores_2 = df_pca_scores[df_pca_scores.columns[:42]].values
+    oligomer_pca_scores_2_final = pca2.fit_transform(oligomer_pca_scores_2)
+    
+    # append the 2 pca scores to the df_pc_scores dataframe in new columns called 2d_tani_pca_1 and 2d_tani_pca_2
+    df_pca_scores['2d_tani_pca_1'] = oligomer_pca_scores_2_final[:, 0]
+    df_pca_scores['2d_tani_pca_2'] = oligomer_pca_scores_2_final[:, 1]
+    # append the pca scores to the df_total dataframe in new columns called 2d_tani_pca_1 and 2d_tani_pca_2 for the corresponding InChIKey
+    df_total['2d_tani_pca_1'] = df_total['InChIKey'].map(df_pca_scores.set_index('InChIKey')['2d_tani_pca_1'])
+    df_total['2d_tani_pca_2'] = df_total['InChIKey'].map(df_pca_scores.set_index('InChIKey')['2d_tani_pca_2'])
+
+    df_total.to_csv(df_path, index=False)
+    df_precursors.to_csv(df_precursors_path, index=False)
+    
+    return

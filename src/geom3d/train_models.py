@@ -68,13 +68,24 @@ def main(config_dir):
 
     if config["hp_search"] is True:
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-        study = optuna.create_study(
-            direction="minimize",
-            storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
-            study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}",
-            pruner=optuna.pruners.MedianPruner(),
-            load_if_exists=True,
+        if config["model_name"] == "PaiNN":
+            # Initialize the hyperparameter optimization
+            study = optuna.create_study(
+                direction="minimize",
+                storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
+                study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}_2",
+                pruner=optuna.pruners.MedianPruner(),
+                load_if_exists=True,
             )
+        else:
+            study = optuna.create_study(
+                direction="minimize",
+                storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
+                study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}",
+                pruner=optuna.pruners.MedianPruner(),
+                load_if_exists=True,
+                )
+        
 
         # Run hyperparameter optimization
         study.optimize(lambda trial: objective(trial, config_dir), n_trials=config["n_trials_hp_search"])
@@ -85,12 +96,6 @@ def main(config_dir):
 
         print("Best Hyperparameters:", best_params)
         print("Best Validation Loss:", best_value)
-        # # for every hyperparameter in best_params, update the config by trying to load it in config[best_params[i]], if it fails, add it to config[model][best_params[i]]
-        # for key, value in best_params.items():
-        #     try:
-        #         config[key] = value
-        #     except KeyError:
-        #         config["model"][key] = value
 
     else:
         # Initialize distributed training

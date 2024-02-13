@@ -32,6 +32,8 @@ from torch_cluster import radius_graph
 
 importlib.reload(dataloaders_GemNet)
 importlib.reload(fragment_scaffold_split)
+importlib.reload(oligomer_scaffold_split)
+importlib.reload(top_target_split)
 
 def load_data(config):
     if config["load_dataset"]:
@@ -167,7 +169,9 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
     elif config["split"] == "oligomer_scaffold":
         split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_mincluster_{config['oligomer_min_cluster_size']}_minsample_{config['oligomer_min_samples']}_cluster_{config['test_set_oligomer_cluster']}.npz"
     elif config["split"] == "top_target":
-        split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}.npz"
+        split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_target_{config['target_name']}_cluster_{config['test_set_target_cluster']}.npz"
+    else:
+        raise ValueError(f"Unknown split method: {config['split']}")
 
     if os.path.exists(split_file_path):
         # Load split indices from the file if it exists
@@ -176,6 +180,7 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
         train_idx = split_data['train_idx']
         valid_idx = split_data['valid_idx']
         test_idx = split_data['test_idx']
+
     else:
         # Perform the split if the file doesn't exist
         if config["split"] == "random":
@@ -192,6 +197,7 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
         elif config["split"] == "fragment_scaffold":
             print("fragment_scaffold split")
             cluster_keys = fragment_scaffold_splitter(dataset, config)
+            print('size of cluster_keys:', len(cluster_keys))
             test_idx = [i for i, data in enumerate(dataset) if data['InChIKey'] in cluster_keys]
             remaining_idx = [i for i in range(len(dataset)) if i not in test_idx]
             np.random.shuffle(remaining_idx)
@@ -209,9 +215,10 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
             train_idx = remaining_idx[:split_idx]
             valid_idx = remaining_idx[split_idx:]
 
-        elif config["split"] == "top_target":
-            print("top_target split")
-            top_target_keys = top_target_split(dataset, config)
+
+        elif config["split"] == "target_cluster":
+            print("target_cluster split")
+            top_target_keys = top_target_splitter(dataset, config)
             test_idx = [i for i, data in enumerate(dataset) if data['InChIKey'] in top_target_keys]
             remaining_idx = [i for i in range(len(dataset)) if i not in test_idx]
             np.random.shuffle(remaining_idx)
@@ -219,6 +226,9 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
             train_idx = remaining_idx[:split_idx]
             valid_idx = remaining_idx[split_idx:]
 
+        else:
+            raise ValueError(f"Unknown split method: {config['split']}")
+        
         # Save split indices to the file
         np.savez(split_file_path, train_idx=train_idx, valid_idx=valid_idx, test_idx=test_idx)
         print(f"Dataset split indices saved to {split_file_path}")

@@ -3,6 +3,7 @@
 import os
 from collections import Counter
 from pathlib import Path
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,53 +19,23 @@ from geom3d.utils import database_utils
 
 
 def fragment_scaffold_splitter(dataset, config):
-    df_path = Path(
-        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
-    )
-    df_precursors_path = Path(
-        config["STK_path"],
-        "data/output/Prescursor_data/",
-        config["df_precursor"],
-    )
+    num_mols = len(dataset)
+    df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
 
-    df_total, df_precursors = database_utils.load_data_from_file(
-        df_path, df_precursors_path
-    )
-
-    X_frag_mol = df_precursors['mol_opt_2'].values
-    X_InChIKey = df_precursors['InChIKey'].values
-
-    # Generate Morgan fingerprints for the dataset
-    morgan_fingerprints = generate_morgan_fingerprints(X_frag_mol)
-
-    # make a list of the InChiKeys in the dataset
-    morgan_fingerprints = [list(morgan_fingerprints[i]) for i in range(len(X_frag_mol))]
-
-    # Calculate the linkage matrix for hierarchical clustering, 
-    morgan_matrix = linkage(morgan_fingerprints, method='average', metric='jaccard', optimal_ordering=True)
-
-    # Cut the dendrogram to obtain clusters
-    threshold = config["fragment_cluster_threshold"]  # Adjust the threshold based on the dendrogram
-    clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
-
-    #Maka a list the InChiKeys present in Morgan cluster
-    morgan_keys = {}
-    for i in range(len(clusters_morgan)):
-        morgan_keys[X_InChIKey[i]] = clusters_morgan[i]
-
-    #make a table of the different InChiKeys and their cluster, naming both the columns
-    morgan_keys = pd.DataFrame(morgan_keys.items(), columns=['InChIKey', 'Cluster'])
-    morgan_keys
+    morgan_keys = check_if_dataset_exists(dataset, config, config["fragment_cluster_threshold"])
 
     test_cluster = config["test_set_fragment_cluster"]
+
+    print('Chosen cluster:', test_cluster)
+    print('Number of molecules in the cluster:', len(morgan_keys['InChIKey'][morgan_keys['Cluster'] == test_cluster]))
 
     oligomer_has_frag_in_cluster_keys = []
 
     # Columns to check
     columns_to_check = [f'InChIKey_{i}' for i in range(6)]
 
-    # Iterate through the keys in morgan_keys['Cluster']
-    for key in morgan_keys['InChIKey'][morgan_keys['Cluster'] == test_cluster]:
+    # Iterate through the keys in morgan_keys['Cluster'] with tqdm
+    for key in tqdm(morgan_keys['InChIKey'][morgan_keys['Cluster'] == test_cluster], desc="analysing how many oliogomers have chosen fragments"):
         # Initialize a list to store associated df_total['InChIKey'] values
         associated_keys = []
         # Iterate through the columns to check
@@ -96,93 +67,56 @@ def fragment_scaffold_splitter(dataset, config):
     return dataset_keys_in_cluster
 
 
-# Function to generate Morgan fingerprints
-def generate_morgan_fingerprints(molecules, radius=2, n_bits=2048):
-    fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits) for mol in molecules]
-    return fingerprints
-
-
-# Function to generate ECFP fingerprints
-def generate_ecfp_fingerprints(molecules, radius=2, n_bits=2048):
-    fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits) for mol in molecules]
-    return fingerprints
-
-
-# Function to calculate Tanimoto similarity between fingerprints
-def calculate_tanimoto_similarity(fingerprint1, fingerprint2):
-    return DataStructs.TanimotoSimilarity(fingerprint1, fingerprint2)
-
-def prepare_frag_plot(dataset, config):
-    df_path = Path(
-        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
-    )
-    df_precursors_path = Path(
-        config["STK_path"],
-        "data/output/Prescursor_data/",
-        config["df_precursor"],
-    )
-
-    df_total, df_precursors = database_utils.load_data_from_file(
-        df_path, df_precursors_path
-    )
-
-    X_frag_mol = df_precursors['mol_opt_2'].values
-
-    # Generate Morgan fingerprints for the dataset
-    morgan_fingerprints = generate_morgan_fingerprints(X_frag_mol)
-
-    # Combine Morgan and ECFP fingerprints for clustering
-    morgan_fingerprints = [list(morgan_fingerprints[i]) for i in range(len(X_frag_mol))]
-
-    # Calculate the linkage matrix for hierarchical clustering
-    morgan_matrix = linkage(morgan_fingerprints, method='average', metric='jaccard')
-
-    # Cut the dendrogram to obtain clusters
-    threshold = config["fragment_cluster_threshold"]  # Adjust the threshold based on the dendrogram
-    clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
-
-    return X_frag_mol, morgan_fingerprints, morgan_matrix, clusters_morgan
-
 # Plot the dendrograms next to eachother
 def plot_dendrograms(dataset, config):
-    
-    X_frag_mol, morgan_fingerprints, morgan_matrix, clusters_morgan = prepare_frag_plot(dataset, config)
 
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = fig.add_subplot(1, 2, 1)
-    ax1.set_title("Morgan fingerprints")
-    dendrogram(morgan_matrix, ax=ax1, labels=clusters_morgan, orientation='left')
+    morgan_matrix, morgan_keys = prepare_frag_plot(dataset, config)
 
-    plt.tight_layout()
+    # Plot the dendrogram
+    plt.figure(figsize=(15, 5))
+    plt.title('Hierarchical Clustering Dendrogram')
+    dendrogram(morgan_matrix, no_labels=True)
     plt.show()
 
 
-def cluster_analysis(dataset, config, threshold=0.5):
 
-    X_frag_mol, morgan_fingerprints, morgan_matrix, clusters_morgan = prepare_frag_plot(dataset, config)
+def cluster_analysis(dataset, config, threshold):
 
-    # Adjust the threshold based on the dendrogram
+    morgan_matrix, morgan_keys = prepare_frag_plot(dataset, config)
+
+    print(f"Clustering dataset with threshold {threshold}")
+
     clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
 
+    morgan_keys['Cluster'] = clusters_morgan
+    
+    # show the first 5 rows of the dataframe
+    print(morgan_keys.columns)
+
     #number of molecules in each cluster
-    unique, counts = np.unique(clusters_morgan, return_counts=True)
+    unique, counts = np.unique(morgan_keys['Cluster'], return_counts=True)
     dict(zip(unique, counts))
     print("Number of molecules in each cluster for morgan fp:", dict(zip(unique, counts)))
 
+    # save the cluster assignments to a file
+    split_file_path = config["running_dir"] + f"/datasplit_{len(dataset)}_{config['split']}_threshold_{threshold}.csv"
+    morgan_keys.to_csv(split_file_path, index=False)  # Set index=False to exclude row indices from the saved file
+    print(f"Dataset cluster assignments saved to {split_file_path}")
+
+    return morgan_keys
+
 
 def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
+    
+    morgan_keys = check_if_dataset_exists(dataset, config, threshold)
 
-    X_frag_mol, morgan_fingerprints, morgan_matrix, clusters_morgan = prepare_frag_plot(dataset, config)
-
-    # Adjust the threshold based on the dendrogram
-    clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
-
+    morgan_fingerprints = morgan_keys['Morgan_Fingerprint']
     # Apply PCA to reduce dimensionality
     pca = PCA(n_components=3)
-    pca_result = pca.fit_transform(morgan_fingerprints)
+    pca_result = pca.fit_transform(morgan_fingerprints.to_list())
 
     # Create a DataFrame for visualization
-    df_pca = pd.DataFrame({'PCA1': pca_result[:, 0], 'PCA2': pca_result[:, 1], 'PCA3': pca_result[:, 2], 'Cluster': clusters_morgan})
+    df_pca = pd.DataFrame({'PCA1': pca_result[:, 0], 'PCA2': pca_result[:, 1], 'PCA3': pca_result[:, 2], 'Cluster': morgan_keys['Cluster']})
 
     # Plot the PCA in 3D
     ax = plt.axes(projection='3d')
@@ -200,19 +134,17 @@ def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
     plt.show()
 
 def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
-
-    X_frag_mol, morgan_fingerprints, morgan_matrix, clusters_morgan = prepare_frag_plot(dataset, config)
-
-    # Adjust the threshold based on the dendrogram
-    clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
+    df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
+    
+    morgan_keys = check_if_dataset_exists(dataset, config, threshold)
 
     #length of cluster
-    print('Length of cluster:', len([i for i, cluster_id in enumerate(clusters_morgan) if cluster_id == selected_cluster]))
+    print('Length of cluster:', len([i for i, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]))
     print(f"Cluster {selected_cluster} representative molecule:")
 
     # Find common substructure for the specified cluster 
-    representative_molecules = [X_frag_mol[i] for i, cluster_id in enumerate(clusters_morgan) if cluster_id == selected_cluster]
-    cluster_smiles = [Chem.MolToSmiles(X_frag_mol[j]) for j, cluster_id in enumerate(clusters_morgan) if cluster_id == selected_cluster]
+    representative_molecules = [X_frag_mol[i] for i, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]
+    cluster_smiles = [Chem.MolToSmiles(X_frag_mol[j]) for j, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]
 
     # Display one molecule from the cluster
     img = Draw.MolToImage(representative_molecules[0])
@@ -242,3 +174,66 @@ def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
             print(f"Top {i + 1} Substructure (Frequency: {count} molecules):")
             img = Draw.MolToImage(Chem.MolFromSmarts(substructure))
             display(img)
+
+
+def calculate_morgan_fingerprints(mols):
+    morgan_fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in mols]
+    return morgan_fps
+
+def calculate_tanimoto_similarity(fp1, fp2):
+    return DataStructs.TanimotoSimilarity(fp1, fp2)
+
+def prepare_frag_plot(dataset, config):
+    df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
+
+    # Generate Morgan fingerprints for the dataset
+    morgan_fingerprints = calculate_morgan_fingerprints(X_frag_mol)
+
+    # tanimoto_sim = np.zeros((len(X_frag_mol), len(X_frag_mol)))
+    # for i in range(len(X_frag_mol)):
+    #     for j in range(len(X_frag_mol)):
+    #         tanimoto_sim[i,j] = calculate_tanimoto_similarity(morgan_fingerprints[i], morgan_fingerprints[j])
+    #         tanimoto_sim[j,i] = tanimoto_sim[i,j]
+
+    # Calculate the linkage matrix for hierarchical clustering, 
+    morgan_matrix = linkage(morgan_fingerprints, method='average', metric='jaccard', optimal_ordering=True)
+        
+    morgan_keys = pd.DataFrame({'InChIKey': X_InChIKey, 'Morgan_Fingerprint': morgan_fingerprints})
+    
+    # show the first 5 rows of the dataframe
+    print(morgan_keys.columns)
+
+    return morgan_matrix, morgan_keys
+
+def load_dataset(dataset, config):
+    seed = config["seed"]
+    np.random.seed(seed)
+    df_path = Path(
+        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
+    )
+    df_precursors_path = Path(
+        config["STK_path"],
+        "data/output/Prescursor_data/",
+        config["df_precursor"],
+    )
+    df_total, df_precursors = database_utils.load_data_from_file(
+        df_path, df_precursors_path
+    )
+
+    X_frag_mol = df_precursors['mol_opt_2'].values
+    X_InChIKey = df_precursors['InChIKey'].values
+
+    return df_total, df_precursors, X_frag_mol, X_InChIKey
+
+def check_if_dataset_exists(dataset, config, threshold):
+    split_file_path = config["running_dir"] + f"/datasplit_{len(dataset)}_{config['split']}_threshold_{threshold}.csv"
+
+    if os.path.exists(split_file_path):
+        # load the dictionary from the file
+        print(f"Loading dataset indices from {split_file_path}")
+        morgan_keys = pd.read_csv(split_file_path)
+
+    else:
+        morgan_keys = cluster_analysis(dataset, config, threshold)
+
+    return morgan_keys

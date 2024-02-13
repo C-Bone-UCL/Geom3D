@@ -3,7 +3,7 @@ Script to run models with different hyperparameters
 model_name: SchNet, DimeNet, DimeNetPlusPlus, SphereNet, PaiNN, Equiformer, (MACE, GemNet soon)
 target_name: combined, IP, ES1, fosc1
 lr_scheduler: CosineAnnealingLR, CosineAnnealingWarmRestartsm, StepLR
-split: random, fragment_scaffold, oligomer_scaffold
+split: random, fragment_scaffold, oligomer_scaffold, target_cluster
 
 """
 
@@ -28,6 +28,9 @@ def run_training(
     hp_search,
     max_epochs_hp_search,
     n_trials_hp_search, 
+    test_set_fragment_cluster,
+    test_set_oligomer_cluster,
+    test_set_target_cluster,
     running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test",
 ):
 
@@ -55,12 +58,14 @@ def run_training(
 
     config["lr_scheduler"] = lr_scheduler
 
-    config["fragment_cluster_threshold"] = 0.55
-    config["test_set_fragment_cluster"] = 6
+    config["fragment_cluster_threshold"] = 0.8
+    config["test_set_fragment_cluster"] = test_set_fragment_cluster
 
     config["oligomer_min_cluster_size"] = 750
     config["oligomer_min_samples"] = 50
-    config["test_set_oligomer_cluster"] = 6
+    config["test_set_oligomer_cluster"] = test_set_oligomer_cluster
+
+    config["test_set_target_cluster"] = test_set_target_cluster
 
     config["mixed_precision"] = True
 
@@ -170,6 +175,7 @@ def run_training(
         config["model"]["Equiformer_hyperparameter"] = 0
         config["model"]["Equiformer_num_layers"] = 3
         config["model"]["node_class"] = 64
+        config["model"]["irreps_node_embedding"] = "64x0e+32x1e+16x2e"
 
     elif config["model_name"] == "PaiNN":
         config["model"] = dict()
@@ -212,11 +218,29 @@ if __name__ == "__main__":
     parser.add_argument("--num_molecules", type=int, default=500)
     parser.add_argument("--target_name", type=str, default="combined")
     parser.add_argument("--lr_scheduler", type=str, default="CosineAnnealingLR")
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--max_epochs", type=int, default=5)
     parser.add_argument("--split", type=str, default="random")
     parser.add_argument("--hp_search", type=bool, default=False)
     parser.add_argument("--max_epochs_hp_search", type=int, default=5)
     parser.add_argument("--n_trials_hp_search", type=int, default=5)
+    parser.add_argument("--test_set_fragment_cluster", type=int, default=1)
+    parser.add_argument("--test_set_oligomer_cluster", type=int, default=1)
+    parser.add_argument("--test_set_target_cluster", type=int, default=1)
+    
     args = parser.parse_args()
-    run_training(args.model_name, args.num_molecules, args.target_name, args.lr_scheduler, args.batch_size, args.max_epochs, args.split, args.hp_search, args.max_epochs_hp_search, args.n_trials_hp_search)
+    run_training(
+        args.model_name, 
+        args.num_molecules, 
+        args.target_name, 
+        args.lr_scheduler, 
+        args.batch_size, 
+        args.max_epochs, 
+        args.split, 
+        args.hp_search, 
+        args.max_epochs_hp_search, 
+        args.n_trials_hp_search,
+        args.test_set_fragment_cluster,
+        args.test_set_oligomer_cluster,
+        args.test_set_target_cluster
+        )

@@ -43,6 +43,8 @@ def read_config(dir):
         config["oligomer_min_samples"] = 50,
         config["test_set_oligomer_cluster"] = 6
 
+        config["test_set_target_cluster"] = 1
+
         config["lr"] = 5e-4
         config["lr_scale"] = 1
         config["decay"] = 0
