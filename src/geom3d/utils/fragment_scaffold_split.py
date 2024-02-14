@@ -19,6 +19,18 @@ from geom3d.utils import database_utils
 
 
 def fragment_scaffold_splitter(dataset, config):
+    """
+    Split a dataset into a training and test set based on the fragment scaffold.
+    The 10% best performing molecules are put in the test set.
+
+    Args:
+    - dataset (list): list of dictionaries containing the molecules and their properties
+    - config (dict): dictionary containing the configuration parameters
+
+    Returns:
+    - test_set_inchikeys (list): list of InChIKeys of the molecules in the test set
+    """
+
     num_mols = len(dataset)
     df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
 
@@ -69,6 +81,13 @@ def fragment_scaffold_splitter(dataset, config):
 
 # Plot the dendrograms next to eachother
 def plot_dendrograms(dataset, config):
+    """
+    Plot the dendrogram for the dataset.
+
+    Args:
+    - dataset (list): list of dictionaries containing the molecules and their properties
+    - config (dict): dictionary containing the configuration parameters
+    """
 
     morgan_matrix, morgan_keys = prepare_frag_plot(dataset, config)
 
@@ -81,13 +100,23 @@ def plot_dendrograms(dataset, config):
 
 
 def cluster_analysis(dataset, config, threshold):
+    """
+    Cluster the dataset based on the fragment fingerprints.
 
+    Args:
+    - dataset (list): list of dictionaries containing the molecules and their properties
+    - config (dict): dictionary containing the configuration parameters
+    - threshold (float): threshold for clustering
+
+    Returns:
+    - morgan_keys (pd.DataFrame): dataframe containing the InChIKeys and the cluster assignments
+
+    """
+
+    # Load the dataset
     morgan_matrix, morgan_keys = prepare_frag_plot(dataset, config)
-
     print(f"Clustering dataset with threshold {threshold}")
-
     clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
-
     morgan_keys['Cluster'] = clusters_morgan
     
     # show the first 5 rows of the dataframe
@@ -107,45 +136,57 @@ def cluster_analysis(dataset, config, threshold):
 
 
 def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
-    
-    morgan_keys = check_if_dataset_exists(dataset, config, threshold)
+    """
+    Plot the PCA of the dataset, highlighting the specified cluster.
 
+    Args:
+    - dataset (list): list of dictionaries containing the molecules and their properties
+    - config (dict): dictionary containing the configuration parameters
+    - selected_cluster (int): cluster to highlight
+    - threshold (float): threshold for clustering
+
+    """
+    morgan_keys = check_if_dataset_exists(dataset, config, threshold)
     morgan_fingerprints = morgan_keys['Morgan_Fingerprint']
     # Apply PCA to reduce dimensionality
     pca = PCA(n_components=3)
     pca_result = pca.fit_transform(morgan_fingerprints.to_list())
-
     # Create a DataFrame for visualization
     df_pca = pd.DataFrame({'PCA1': pca_result[:, 0], 'PCA2': pca_result[:, 1], 'PCA3': pca_result[:, 2], 'Cluster': morgan_keys['Cluster']})
-
+    
     # Plot the PCA in 3D
     ax = plt.axes(projection='3d')
     ax.scatter3D(df_pca['PCA1'], df_pca['PCA2'], df_pca['PCA3'], c=df_pca['Cluster'], cmap='viridis', alpha=0.2)
-
     # Filter the DataFrame to include only selected cluster
     df_cluster_spec = df_pca[df_pca['Cluster'] == selected_cluster]
-
     # Plot only the values for cluster 5 with a different color
     ax.scatter3D(df_cluster_spec['PCA1'], df_cluster_spec['PCA2'], df_cluster_spec['PCA3'], c='red', label=f'Cluster {selected_cluster}', alpha=0.9)
-
     # Move the legend to the right of the plot
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     plt.title(f'PCA Plot with Clusters, Highlighted Cluster {selected_cluster}')
     plt.show()
 
 def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
-    df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
+    """
+    Generate common substructures for the specified cluster.
+
+    Args:
+    - dataset (list): list of dictionaries containing the molecules and their properties
+    - config (dict): dictionary containing the configuration parameters
+    - selected_cluster (int): cluster to analyze
+    - threshold (float): threshold for clustering
     
+    """
+    
+    df_total, df_precursors, X_frag_mol, X_InChIKey = load_dataset(dataset, config)
     morgan_keys = check_if_dataset_exists(dataset, config, threshold)
 
     #length of cluster
     print('Length of cluster:', len([i for i, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]))
     print(f"Cluster {selected_cluster} representative molecule:")
-
     # Find common substructure for the specified cluster 
     representative_molecules = [X_frag_mol[i] for i, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]
     cluster_smiles = [Chem.MolToSmiles(X_frag_mol[j]) for j, cluster_id in enumerate(morgan_keys['Cluster']) if cluster_id == selected_cluster]
-
     # Display one molecule from the cluster
     img = Draw.MolToImage(representative_molecules[0])
     display(img)

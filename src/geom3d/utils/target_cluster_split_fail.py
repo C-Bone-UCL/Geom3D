@@ -1,7 +1,3 @@
-""" 
-script to turn a a dataset into custom target based split that puts the 10% best performing molecules in the test set 
-"""
-
 import os
 from collections import Counter
 from pathlib import Path
@@ -19,88 +15,89 @@ from sklearn.cluster import HDBSCAN
 from tqdm import tqdm
 
 from geom3d.utils import database_utils
-from geom3d.utils.oligomer_scaffold_split import load_dataframes, check_data_exists
 
-def top_target_splitter(dataset, config):
+def cluster_target_splitter(dataset, config):
     """
     Split a dataset into a training and test set based on the target value.
     The 10% best performing molecules are put in the test set.
 
     Args:
     - dataset (list): list of dictionaries containing the data
-    - config (dict): dictionary containing the configuration
+    - config (dict): dictionary containing the parameters
 
     Returns:
-    - test_set_inchikeys (list): list of InChIKeys of the test set
-
+    - test_set_inchikeys (list): list of InChIKeys of the molecules in the test set
     """
-    
-    if config["target_name"] == "combined":
-        ideal_value = 0
-    elif config["target_name"] == "IP":
-        ideal_value = 5.5
-    elif config["target_name"] == "ES1":
-        ideal_value = 3
-    elif config["target_name"] == "fosc1":
-        ideal_value = 10
-    else:
-        raise ValueError(f"Unknown target_name: {config['target_name']}")
-
-    print(f"splitting group {config['test_set_target_cluster']} 10% of dataset into equal val and test set. The target value is {config['target_name']}.")
-
-    # same logic but look at how far the value is from 0 and take the 10% closest to 10
+    print("top 10% in the test set. The target value is the combined score.")
+    # Get the target column 'y' from each dictionary in the list
     target = np.array([data['y'] for data in dataset])
-    distance = np.abs(target - ideal_value)
-    sorted_indices = np.argsort(distance)
 
-    chosen_set = sorted_indices[int(len(sorted_indices) * 0.1 * (config["test_set_target_cluster"] - 1)):int(len(sorted_indices) * 0.1 * config["test_set_target_cluster"])]
+    # Cluster the target values using HDBSCAN
+    clusterer = HDBSCAN(min_cluster_size=5)
+    clusters = clusterer.fit_predict(target.reshape(-1, 1))
 
-    np.random.shuffle(chosen_set)
+    # Choose one cluster to put in the test set (e.g., the cluster with the highest number of samples)
+    test_cluster = config["test_set_target_cluster"]
+    print(f"Test set cluster: {test_cluster}")
 
-    test_set = [dataset[i] for i in chosen_set]
+    # Get the indices of the molecules in the chosen cluster
+    test_indices = np.where(clusters == test_cluster)[0]
 
+    # find the InChIKeys of the test set
+    test_set = [dataset[i] for i in test_indices]
     test_set_inchikeys = [data["InChIKey"] for data in test_set]
-    
+
     return test_set_inchikeys
 
-def target_plot(dataset, config):
-    """Plot the 2D PCA space of the dataset, highlighting the top 10% of oligomers wrt target value.
+# function to visualize the clusters showing the assigned number for each cluster, the axes should both be the target value
+def visualize_clusters(dataset, config):
+    """
+    Visualize the clusters of the target values.
 
     Args:
     - dataset (list): list of dictionaries containing the data
-    - config (dict): dictionary containing the configuration
+    - config (dict): dictionary containing the parameters
 
     """
-    
-    df_total, df_precursors = load_dataframes(dataset, config)
-    check_data_exists(df_total, dataset, config)
-    test_set_inchikeys = top_target_splitter(dataset, config)
+    # Get the target column 'y' from each dictionary in the list
+    target = np.array([data['y'] for data in dataset])
 
-    # Plot all clusters
-    plt.figure(figsize=(10, 10))
-    plt.scatter(df_total['2d_tani_pca_1'], df_total['2d_tani_pca_2'], alpha=0.7, label='All oligomers', c='lightgrey')
-    # Highlight the samples where df_total[InChIKey] is in test_set_inchikeys
-    plt.scatter(df_total.loc[df_total['InChIKey'].isin(test_set_inchikeys), '2d_tani_pca_1'], df_total.loc[df_total['InChIKey'].isin(test_set_inchikeys), '2d_tani_pca_2'], c='red', label='Test set', alpha=0.9)
+    # Cluster the target values using HDBSCAN
+    clusterer = HDBSCAN(min_cluster_size=5)
+    clusters = clusterer.fit_predict(target.reshape(-1, 1))
 
-    plt.legend()
-    plt.title("Top 10% of oligomers wrt target value in 2D PCA space")
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
+    # Plot the clusters with reduced number of pixels
+    plt.figure(figsize=(8, 6))
+    plt.scatter(target, target, c=clusters, cmap="viridis", hue=clusters, s=10)
+    plt.xlabel("Target value")
+    plt.ylabel("target")
+    plt.title("Clusters of target values")
     plt.show()
 
-    return
+    return None
 
 def substructure_analysis_top_target(dataset, config):
     """
-    Generate common substructures for the top 10% of oligomers wrt target value.
-    
+    Perform substructure analysis on the top 10% of the dataset with respect to the target value.
+
     Args:
     - dataset (list): list of dictionaries containing the data
-    - config (dict): dictionary containing the configuration
+    - config (dict): dictionary containing the parameters
 
     """
-    
-    df_total, df_precursors = load_dataframes(dataset, config)
+
+    df_path = Path(
+        config["STK_path"], "data/output/Full_dataset/", config["df_total"]
+    )
+    df_precursors_path = Path(
+        config["STK_path"],
+        "data/output/Prescursor_data/",
+        config["df_precursor"],
+    )
+
+    df_total, df_precursors = database_utils.load_data_from_file(
+        df_path, df_precursors_path
+    )
     
     X_frag_mol = df_precursors['mol_opt'].values
     X_frag_inch = df_precursors['InChIKey'].values
@@ -159,3 +156,4 @@ def substructure_analysis_top_target(dataset, config):
         print(f"Top {i + 1} Substructure (Frequency: {count} oligomers):")
         img = Draw.MolToImage(Chem.MolFromSmarts(substructure))
         display(img)
+

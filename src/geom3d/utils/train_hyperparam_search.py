@@ -53,6 +53,17 @@ importlib.reload(model_setup_utils)
 
 
 def objective(trial, config_dir):
+    """
+    Objective function for the hyperparameter search.
+
+    Args:
+    - trial (optuna.Trial): Optuna trial object
+    - config_dir (str): directory to config.json
+
+    Returns:
+    - validation_loss (float): validation loss of the trained model
+    """
+
     config = read_config(config_dir)
 
     config = hyperparameter_setup(config, trial)

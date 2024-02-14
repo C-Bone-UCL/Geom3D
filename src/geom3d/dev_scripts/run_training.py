@@ -1,10 +1,21 @@
 """
-Script to run models with different hyperparameters
-model_name: SchNet, DimeNet, DimeNetPlusPlus, SphereNet, PaiNN, Equiformer, (MACE, GemNet soon)
+Script to run models with different parameters
+
+For the different splits, perform the analysis in a jupyter notbook using the functions in each script
+Then tune the parameters for the best performance (cluster threshold, min_cluster_size, min_samples, etc.)
+Then need to chose a cluster to put in the test set, and then run the training with the chosen parameters
+
+Perform hyperparameter search for the best performance by setting hp_search to True
+Can set the number of trials and the maximum number of epochs for the hyperparameter search
+
+Currently implemented parameters:
+model_name: SchNet, DimeNet, DimeNetPlusPlus, SphereNet, PaiNN, Equiformer
 target_name: combined, IP, ES1, fosc1
 lr_scheduler: CosineAnnealingLR, CosineAnnealingWarmRestartsm, StepLR
 split: random, fragment_scaffold, oligomer_scaffold, target_cluster
 
+Example usage:
+python run_training.py --model_name SchNet --num_molecules 500 --target_name combined 
 """
 
 from geom3d.utils.config_utils import save_config, read_config
@@ -33,7 +44,9 @@ def run_training(
     test_set_target_cluster,
     running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test",
 ):
-
+    """
+    Run the training with the given hyperparameters
+    """
     config_dir = os.path.join(running_dir, f"{model_name}_{target_name}_{num_molecules}")
 
     # Check if the directory exists, and create it if it doesn't

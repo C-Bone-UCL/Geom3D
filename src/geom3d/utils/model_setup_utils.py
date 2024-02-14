@@ -8,6 +8,7 @@ import wandb
 import torch.nn as nn
 import torch.optim as optim
 import torch
+
 from tqdm import tqdm
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data, Batch
@@ -18,6 +19,7 @@ from torch.nn.parallel import DistributedDataParallel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from pathlib import Path
+
 from geom3d import dataloader
 from geom3d.dataloader import load_data, train_val_test_split, load_3d_rpr
 from geom3d.dataloaders.dataloaders_GemNet import DataLoaderGemNet
@@ -26,7 +28,20 @@ from geom3d.models import SchNet, DimeNet, DimeNetPlusPlus, GemNet, SphereNet, S
 from geom3d.utils import database_utils
 from geom3d.utils.config_utils import read_config
 
+
 def model_setup(config, trial=None):
+    """
+    Setup the model based on the configuration file.
+
+    Args:
+    - config (dict): configuration file
+    - trial (optuna.trial): optuna trial object
+
+    Returns:
+    - model (nn.Module): model
+    - graph_pred_linear (nn.Module): output layer for the model
+    """
+
     model_config = config["model"]
     
     if trial:
@@ -188,7 +203,17 @@ def model_setup(config, trial=None):
     return model, graph_pred_linear
 
 def hyperparameter_setup(config, trial):
+    """
+    Setup the hyperparameters for the model based on the configuration file.
+    Choose the hyperparameters for the model based on the trial object.
 
+    Args:
+    - config (dict): configuration file
+    - trial (optuna.trial): optuna trial object
+
+    Returns:
+    - config (dict): configuration file
+    """
     if config["model_name"] == "SchNet":
         batch_size = trial.suggest_int('batch_size', low=16, high=128, step=16)
         config["batch_size"] = batch_size

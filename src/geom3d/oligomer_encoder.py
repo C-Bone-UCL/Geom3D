@@ -1,5 +1,5 @@
 """
-this script is to encode the representation of the oligomer from the representation of the fragments
+This script is to encode the representation of the oligomer from the representation of the fragments
 """
 
 import stk

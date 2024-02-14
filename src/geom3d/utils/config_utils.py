@@ -3,6 +3,16 @@ import os
 
 
 def read_config(dir):
+    """
+    Read the config from a json file in the given directory.
+    If the file does not exist, create a new one with default parameters.
+
+    Args:
+    - dir (str): directory to config.json
+
+    Returns:
+    - config (dict): dictionary containing the parameters
+    """
     if os.path.exists(dir + "/config.json"):
         config = load_config(dir)
         print("config loaded from", dir)

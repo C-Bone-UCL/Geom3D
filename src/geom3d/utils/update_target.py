@@ -23,11 +23,17 @@ import importlib
 from torch_cluster import radius_graph
 
 
-def update_target_in_dataset(dataset, new_targets):
-    for data, new_target in zip(dataset, new_targets):
-        data.y = torch.tensor(new_target, dtype=torch.float32)
-
 def main():
+    """
+    Update the target in the dataset with the new targets from the database.
+    
+    The new targets can be:
+    - ionisation potential (IP)
+    - Excited state energy (ES1)
+    - Excited state oscillator strength (fosc1)
+
+    """
+
     # Load the original dataset
     original_dataset_path = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/80Kdataset_radius.pt"
     dataset = torch.load(original_dataset_path)
@@ -77,6 +83,11 @@ def main():
     new_dataset_path_fosc1 = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/training/dataset80K_radius_fosc1.pt"
     torch.save(dataset, new_dataset_path_fosc1)
     print(f"New dataset saved: {new_dataset_path_fosc1}")
+
+
+def update_target_in_dataset(dataset, new_targets):
+    for data, new_target in zip(dataset, new_targets):
+        data.y = torch.tensor(new_target, dtype=torch.float32)
 
 
 if __name__ == "__main__":

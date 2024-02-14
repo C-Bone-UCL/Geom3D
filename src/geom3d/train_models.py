@@ -1,7 +1,18 @@
 """
-script to train the SchNet model on the STK dataset
-created by Mohammed Azzouzi
-date: 2023-11-14
+This script trains the model using the configuration file provided. 
+
+The script loads the data, initializes the model, and trains the model using the hyperparameters
+specified in the configuration file. 
+The script also supports hyperparameter optimization using Optuna. 
+The trained model is saved in the directory specified in the configuration file. 
+The script also logs the training process using Weights and Biases. (WandB)
+
+The script can be run using the following command:
+python train_models.py --config_dir <path_to_config.json>
+
+Args:
+config_dir (str): directory to the config.json file
+
 """
 import stk
 import pymongo
@@ -55,6 +66,15 @@ importlib.reload(model_setup_utils)
 
 
 def main(config_dir):
+    """
+    Main function to train the model
+
+    Args:
+    config_dir (str): directory to the config.json file
+
+    Returns:
+    None
+    """
     start_time = time.time()
 
     config = read_config(config_dir)
@@ -96,6 +116,7 @@ def main(config_dir):
 
         print("Best Hyperparameters:", best_params)
         print("Best Validation Loss:", best_value)
+     
 
     else:
         # Initialize distributed training

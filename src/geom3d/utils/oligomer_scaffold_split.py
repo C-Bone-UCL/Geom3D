@@ -21,6 +21,19 @@ from geom3d.utils import database_utils
 
 
 def oligomer_scaffold_splitter(dataset, config):
+    """
+    Split a dataset into a training and test set based on the scaffold of the oligomers.
+    The test set contains the oligomers with the specified scaffold.
+
+    Args:
+    - dataset: list of dictionaries
+    - config: dictionary with the following
+
+    Returns:
+    - test_set_inchikeys: list of InChIKeys of the oligomers in the test set
+
+    """
+
     df_total, df_precursors = load_dataframes(dataset, config)
 
     check_data_exists(df_total, dataset, config)
@@ -52,6 +65,16 @@ def oligomer_scaffold_splitter(dataset, config):
 
 
 def cluster_analysis(dataset, config, min_cluster_size=750, min_samples=50):
+    """
+    Perform clustering on the dataset and print the number of clusters and the number of oligomers in each cluster.
+
+    Args:
+    - dataset: list of dictionaries
+    - config: dictionary with the following
+    - min_cluster_size: int, minimum size for a cluster to be considered valid
+    - min_samples: int, minimum number of points required to form a core point
+
+    """
     df_total, df_precursors = load_dataframes(dataset, config)
     check_data_exists(df_total, dataset, config)
     
@@ -70,6 +93,13 @@ def cluster_analysis(dataset, config, min_cluster_size=750, min_samples=50):
 
 
 def pca_plot(dataset, config):
+    """
+    Plot the 2D PCA space of the dataset, highlighting the chosen cluster.
+
+    Args:
+    - dataset: list of dictionaries
+    - config: dictionary with the following
+    """
     df_total, df_precursors = load_dataframes(dataset, config)
     check_data_exists(df_total, dataset, config)
 
@@ -102,6 +132,16 @@ def pca_plot(dataset, config):
 
 # still to do for oligomer
 def substructure_analysis_oligomers(dataset, config, selected_cluster=1, min_cluster_size=750, min_samples=50):
+    """
+    Perform substructure analysis for the specified cluster of oligomers.
+
+    Args:
+    - dataset: list of dictionaries
+    - config: dictionary with the following
+    - selected_cluster: int, the cluster to perform substructure analysis on
+    - min_cluster_size: int, minimum size for a cluster to be considered valid
+    - min_samples: int, minimum number of points required to form a core point
+    """
     df_total, df_precursors = load_dataframes(dataset, config)
     
     X_frag_mol = df_precursors['mol_opt'].values
@@ -204,7 +244,6 @@ def load_dataframes(dataset, config):
 
 
 def check_data_exists(df_total, dataset, config):
-    # split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_mincluster_{config['oligomer_min_cluster_size']}_minsample_{config['oligomer_min_samples']}.csv"
     # check if df_total['2d_tani_pca_1'] and df_total['2d_tani_pca_2'] exist, if not, calculate them
     if '2d_tani_pca_1' in df_total.columns and '2d_tani_pca_2' in df_total.columns:
         print("Dataset file found in df_total")
@@ -246,14 +285,15 @@ def generate_repr(df_total, df_precursors,frag_properties,idx=0):
 
 
 def generate_2d_PCA(dataset, config):
+    """
+    Generate 2D PCA scores for the dataset and append them to df_total.
+    """
+    
     df_total, df_precursors = load_dataframes(dataset, config)
-
     X_frag_mol = df_precursors['mol_opt'].values
 
     print(f"Dataset file not found in df_total. Generating...")
-
     morgan_fps = calculate_morgan_fingerprints(X_frag_mol)
-
     tanimoto_sim = np.zeros((len(X_frag_mol), len(X_frag_mol)))
     for i in range(len(X_frag_mol)):
         for j in range(len(X_frag_mol)):
@@ -271,16 +311,12 @@ def generate_2d_PCA(dataset, config):
         df_precursors[f'PCA_{i}'] = pca_scores[:, i]
     oligomer_pca_scores_2 = generate_repr(df_total, df_precursors, df_precursors.columns[-7:], idx=range(len(df_total)))
 
-    # # find the indices of the NaN values in the pca scores
-    # nan_indices = np.argwhere(np.isnan(oligomer_pca_scores_2).any(axis=1)).flatten()
-
     # make a dataframe with one column for each 42 pca score and then the first column is the InChIKey
     df_pca_scores = pd.DataFrame(oligomer_pca_scores_2, columns=[f'PCA_{i}' for i in range(42)])
     df_pca_scores['InChIKey'] = df_total['InChIKey']
     # drop the rows with NaN values
     df_pca_scores = df_pca_scores.dropna()
     pca2 = PCA(n_components=2)
-
     # Perform PCA on the first 42 columns of the dataframe
     oligomer_pca_scores_2 = df_pca_scores[df_pca_scores.columns[:42]].values
     oligomer_pca_scores_2_final = pca2.fit_transform(oligomer_pca_scores_2)
