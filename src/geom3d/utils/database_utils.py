@@ -82,8 +82,8 @@ def load_data_database(df_precursor_loc="/rds/general/user/cb1319/home/data/outp
 
 # or load data from files
 def load_data_from_file(
-    df_path="Data/df_total_new.csv2023_08_20",
-    df_precursors_path="Data/calculation_data_precursor_310823_clean.pkl",
+    df_path="Data/df_total_subset_16_11_23.csv",
+    df_precursors_path="Data/calculation_data_precursor_071123_clean.pkl",
     features_frag=None,
 ):
     """
@@ -111,6 +111,7 @@ def load_data_from_file(
             df_test[f"InChIKey_{i}"] = df_test["BB"].apply(
                 lambda x: eval(x)[i]["InChIKey"]
             )
+
         df_precursors = pd.read_pickle(df_precursors_path)
         if features_frag is None:
             features_frag = df_precursors.columns[1:7].append(

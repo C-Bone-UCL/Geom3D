@@ -42,12 +42,13 @@ def run_training(
     test_set_fragment_cluster,
     test_set_oligomer_cluster,
     test_set_target_cluster,
-    running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test",
+    running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/fragment_experiment",
+    dataset_folder="/rds/general/user/cb1319/home/GEOM3D/Geom3D/datasets"
 ):
     """
     Run the training with the given hyperparameters
     """
-    config_dir = os.path.join(running_dir, f"{model_name}_{target_name}_{num_molecules}")
+    config_dir = os.path.join(running_dir, f"{model_name}_opt_{target_name}_{num_molecules}_{test_set_fragment_cluster}")
 
     # Check if the directory exists, and create it if it doesn't
     if not os.path.exists(config_dir):
@@ -61,17 +62,18 @@ def run_training(
     config["load_dataset"] = True
     config["model_name"] = model_name
     config["dataset_path_frag"] = ""
+    config["dataset_folder"] = dataset_folder
     config["save_dataset"] = True
     config["num_molecules"] = num_molecules
     config["running_dir"] = running_dir
     config["train_ratio"] = 0.8
-    config["name"] = f"{model_name}_{target_name}_{num_molecules}"
+    config["name"] = f"{model_name}_opt_{target_name}_{num_molecules}_{test_set_fragment_cluster}"
     config["target_name"] = target_name
     config["batch_size"] = batch_size
 
     config["lr_scheduler"] = lr_scheduler
 
-    config["fragment_cluster_threshold"] = 0.8
+    config["fragment_cluster_threshold"] = 0.067
     config["test_set_fragment_cluster"] = test_set_fragment_cluster
 
     config["oligomer_min_cluster_size"] = 750
@@ -88,48 +90,34 @@ def run_training(
     config["max_epochs_hp_search"] = max_epochs_hp_search
     config["n_trials_hp_search"] = n_trials_hp_search
 
-    if model_name == "PaiNN":
-        if config["target_name"] == "combined":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius.pt"
-        elif config["target_name"] == "IP":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius_IP.pt"
-        elif config["target_name"] == "ES1":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius_ES1.pt"
-        elif config["target_name"] == "fosc1":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius_fosc1.pt"
+
+    if model_name == 'PaiNN':
+        config["dataset_path"] = f"{dataset_folder}/{str(num_molecules)}dataset_radius_{target_name}.pt"
     else:
-        if config["target_name"] == "combined":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset.pt"
-        elif config["target_name"] == "IP":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_IP.pt"
-        elif config["target_name"] == "ES1":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_ES1.pt"
-        elif config["target_name"] == "fosc1":
-            config["dataset_path"] = "/rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_fosc1.pt"
-
-
+        config["dataset_path"] = f"{dataset_folder}/{str(num_molecules)}dataset_{target_name}.pt"
+    
     if config["model_name"] == "SchNet":
         config["model"] = dict()
         config["model"]["node_class"] = 119
         config["model"]["edge_class"] = 5
         config["model"]["num_tasks"] = 1
-        config["model"]["emb_dim"] = 128
+        config["model"]["emb_dim"] = 176
         config["model"]["SchNet_num_filters"] = 128
-        config["model"]["SchNet_num_interactions"] = 6
+        config["model"]["SchNet_num_interactions"] = 8
         config["model"]["SchNet_num_gaussians"] = 51
-        config["model"]["SchNet_cutoff"] = 10
+        config["model"]["SchNet_cutoff"] = 6
         config["model"]["SchNet_readout"] = "mean"
 
     elif config["model_name"] == "DimeNet":
         config["model"] = dict()
         config["model"]["node_class"] = 119
-        config["model"]["hidden_channels"] = 300
+        config["model"]["hidden_channels"] = 128
         config["model"]["out_channels"] = 1
         config["model"]["num_blocks"] = 6
         config["model"]["num_bilinear"] = 8
         config["model"]["num_spherical"] = 7
         config["model"]["num_radial"] = 6
-        config["model"]["cutoff"] = 10.0
+        config["model"]["cutoff"] = 4.0
         config["model"]["envelope_exponent"] = 5
         config["model"]["num_before_skip"] = 1
         config["model"]["num_after_skip"] = 2
@@ -138,15 +126,15 @@ def run_training(
     elif config["model_name"] == "DimeNetPlusPlus":
         config["model"] = dict()
         config["model"]["node_class"] = 119
-        config["model"]["hidden_channels"] = 300
+        config["model"]["hidden_channels"] = 32
         config["model"]["out_channels"] = 1
-        config["model"]["num_blocks"] = 6
+        config["model"]["num_blocks"] = 9
         config["model"]["int_emb_size"] = 64
         config["model"]["basis_emb_size"] = 8
         config["model"]["out_emb_channels"] = 64
         config["model"]["num_spherical"] = 7
         config["model"]["num_radial"] = 6
-        config["model"]["cutoff"] = 10.0
+        config["model"]["cutoff"] = 6.0
         config["model"]["envelope_exponent"] = 5
         config["model"]["num_before_skip"] = 1
         config["model"]["num_after_skip"] = 2
@@ -182,20 +170,20 @@ def run_training(
 
     elif config["model_name"] == "Equiformer":
         config["model"] = dict()
-        config["model"]["Equiformer_radius"] = 4.0
+        config["model"]["Equiformer_radius"] = 7.0
         config["model"]["Equiformer_irreps_in"] = "5x0e"
-        config["model"]["Equiformer_num_basis"] = 32
+        config["model"]["Equiformer_num_basis"] = 64
         config["model"]["Equiformer_hyperparameter"] = 0
         config["model"]["Equiformer_num_layers"] = 3
         config["model"]["node_class"] = 64
-        config["model"]["irreps_node_embedding"] = "64x0e+32x1e+16x2e"
+        config["model"]["irreps_node_embedding"] = "64x0e+16x1e+16x2e"
 
     elif config["model_name"] == "PaiNN":
         config["model"] = dict()
         config["model"]["n_atom_basis"] = 64
-        config["model"]["n_interactions"] = 3
+        config["model"]["n_interactions"] = 6
         config["model"]["n_rbf"] = 20
-        config["model"]["cutoff"] = 5.0
+        config["model"]["cutoff"] = 4.0
         config["model"]["max_z"] = 93
         config["model"]["n_out"] = 1
         config["model"]["readout"] = "add"
@@ -204,14 +192,14 @@ def run_training(
         config["model"] = dict()
         config["model"]["hidden_channels"] = 128
         config["model"]["out_channels"] = 1
-        config["model"]["cutoff"] = 5.0
-        config["model"]["num_layers"] = 4
+        config["model"]["cutoff"] = 6.0
+        config["model"]["num_layers"] = 5
         config["model"]["int_emb_size"] = 64
         config["model"]["basis_emb_size_dist"] = 8
         config["model"]["basis_emb_size_angle"] = 8
         config["model"]["basis_emb_size_torsion"] = 8
         config["model"]["out_emb_channels"] = 256
-        config["model"]["num_spherical"] = 7
+        config["model"]["num_spherical"] = 3
         config["model"]["num_radial"] = 6
         config["model"]["envelope_exponent"] = 5
         config["model"]["num_before_skip"] = 1

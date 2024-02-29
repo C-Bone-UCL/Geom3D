@@ -54,10 +54,12 @@ def load_data(config):
 
     if config["load_dataset"]:
         if os.path.exists(config["dataset_path"]):
+            print(config["dataset_path"])
             dataset = torch.load(config["dataset_path"])
 
             return dataset
         else:
+            print(config["dataset_path"])
             print("dataset not found")
     df_path = Path(
         config["STK_path"], "data/output/Full_dataset/", config["df_total"]
@@ -99,10 +101,13 @@ def load_data(config):
 
     # where the new dataset daves
     if config["save_dataset"]:
-        name = config["name"] 
-        os.makedirs(name, exist_ok=True)
-        torch.save(dataset, "training/"+name+f"/{len(dataset)}dataset.pt")
-        print(f"dataset saved to {name}/{len(dataset)}dataset.pt")
+        os.makedirs(config['dataset_folder'], exist_ok=True)
+        if config["model_name"] == "PaiNN":
+            torch.save(dataset, f"{config['dataset_folder']}/{len(dataset)}dataset_radius_{config['target_name']}.pt")
+            print(f"dataset saved to {config['dataset_folder']}/{len(dataset)}dataset_radius_{config['target_name']}.pt")
+        else:    
+            torch.save(dataset, f"{config['dataset_folder']}/{len(dataset)}dataset_{config['target_name']}.pt")
+            print(f"dataset saved to {config['dataset_folder']}/{len(dataset)}dataset_{config['target_name']}.pt")
     
     return dataset
 

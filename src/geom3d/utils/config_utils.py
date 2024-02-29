@@ -41,6 +41,7 @@ def read_config(dir):
         config["pl_model_chkpt"] = ""
         config["load_dataset"] = False
         config["dataset_path"] = ""
+        config["dataset_folder"] = '/rds/general/user/cb1319/home/GEOM3D/Geom3D/datasets'
         config["dataset_path_frag"] = ""
         config["target_name"] = "combined"
         config["model_name"] = "SchNet"

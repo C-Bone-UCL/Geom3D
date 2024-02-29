@@ -58,6 +58,7 @@ from geom3d.utils.model_setup_utils import model_setup
 from geom3d.utils.train_hyperparam_search import objective
 from geom3d.pymodel import Pymodel, PrintLearningRate
 
+
 importlib.reload(models)
 importlib.reload(dataloader)
 importlib.reload(train_hyperparam_search)
@@ -87,36 +88,40 @@ def main(config_dir):
     dataset = load_data(config)
 
     if config["hp_search"] is True:
-        optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-        if config["model_name"] == "PaiNN":
-            # Initialize the hyperparameter optimization
-            study = optuna.create_study(
-                direction="minimize",
-                storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
-                study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}_2",
-                pruner=optuna.pruners.MedianPruner(),
-                load_if_exists=True,
-            )
-        else:
-            study = optuna.create_study(
-                direction="minimize",
-                storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
-                study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}",
-                pruner=optuna.pruners.MedianPruner(),
-                load_if_exists=True,
+        try:    
+            optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+            if config["model_name"] == "PaiNN":
+                # Initialize the hyperparameter optimization
+                study = optuna.create_study(
+                    direction="minimize",
+                    storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
+                    study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}_2",
+                    pruner=optuna.pruners.MedianPruner(),
+                    load_if_exists=True,
                 )
-        
+            else:
+                study = optuna.create_study(
+                    direction="minimize",
+                    storage="sqlite:///./hp_search/my_study.db",  # Specify the storage URL here.
+                    study_name=f"hyperparameter_optimization_{config['model_name']}_{config['target_name']}",
+                    pruner=optuna.pruners.MedianPruner(),
+                    load_if_exists=True,
+                    )
+            
 
-        # Run hyperparameter optimization
-        study.optimize(lambda trial: objective(trial, config_dir), n_trials=config["n_trials_hp_search"])
+            # Run hyperparameter optimization
+            study.optimize(lambda trial: objective(trial, config_dir), n_trials=config["n_trials_hp_search"])
 
-        # Retrieve the best hyperparameters
-        best_params = study.best_params
-        best_value = study.best_value
+            # Retrieve the best hyperparameters
+            best_params = study.best_params
+            best_value = study.best_value
 
-        print("Best Hyperparameters:", best_params)
-        print("Best Validation Loss:", best_value)
-     
+            print("Best Hyperparameters:", best_params)
+            print("Best Validation Loss:", best_value)
+
+        except OutOfMemoryError:
+            raise optuna.exceptions.TrialPruned()
+
 
     else:
         # Initialize distributed training

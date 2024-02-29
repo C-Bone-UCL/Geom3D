@@ -14,6 +14,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs, Draw, rdFMCS
 from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
 from sklearn.decomposition import PCA
+import plotly.graph_objs as go
+
 
 from geom3d.utils import database_utils
 
@@ -117,21 +119,49 @@ def cluster_analysis(dataset, config, threshold):
     morgan_matrix, morgan_keys = prepare_frag_plot(dataset, config)
     print(f"Clustering dataset with threshold {threshold}")
     clusters_morgan = fcluster(morgan_matrix, threshold, criterion='distance')
+
+    print("Number of clusters:", len(np.unique(clusters_morgan)))
+
+    # Merge clusters with less than 40 molecules with nearby clusters
+    unique_clusters, counts = np.unique(clusters_morgan, return_counts=True)
+    print("Number of molecules in each cluster for morgan fp:", dict(zip(unique_clusters, counts)))
+
+    # while min(counts) < 30:
+    for cluster, count in zip(unique_clusters, counts):
+        if count < 30:
+            # Find adjacent clusters
+            adjacent_clusters = [
+                c for c in unique_clusters
+                if c != cluster and abs(c - cluster) <= 1
+            ]
+
+            if adjacent_clusters:
+                # Find the adjacent cluster with the lowest count
+                nearest_cluster = min(adjacent_clusters, key=lambda x: counts[np.where(unique_clusters == x)])
+                # Merge the current cluster into the nearest one
+                clusters_morgan[clusters_morgan == cluster] = nearest_cluster
+            else:
+                print("No adjacent clusters found.")
+
+    # Relabel clusters to ensure consecutive numbering
+    unique_clusters, counts = np.unique(clusters_morgan, return_counts=True)
+    new_cluster_mapping = dict(zip(unique_clusters, range(1, len(unique_clusters) + 1)))
+    clusters_morgan = np.array([new_cluster_mapping[c] for c in clusters_morgan])  
+
+    # Update InChIKey DataFrame with new cluster assignments
     morgan_keys['Cluster'] = clusters_morgan
+
+    # Number of molecules in each cluster
+    unique_clusters, counts = np.unique(morgan_keys['Cluster'], return_counts=True)
+    print("Number of molecules in each cluster after merging small clusters:", dict(zip(unique_clusters, counts)))
+
+    # # save the cluster assignments to a file
+    # split_file_path = config["running_dir"] + f"/datasplit_{len(dataset)}_{config['split']}_threshold_{threshold}.csv"
+
+    # morgan_keys.to_csv(split_file_path, index=False)  # Set index=False to exclude row indices from the saved file
+    # print(f"Dataset cluster assignments saved to {split_file_path}")
+    # morgan_keys = resplit_cluster(morgan_keys)
     
-    # show the first 5 rows of the dataframe
-    print(morgan_keys.columns)
-
-    #number of molecules in each cluster
-    unique, counts = np.unique(morgan_keys['Cluster'], return_counts=True)
-    dict(zip(unique, counts))
-    print("Number of molecules in each cluster for morgan fp:", dict(zip(unique, counts)))
-
-    # save the cluster assignments to a file
-    split_file_path = config["running_dir"] + f"/datasplit_{len(dataset)}_{config['split']}_threshold_{threshold}.csv"
-    morgan_keys.to_csv(split_file_path, index=False)  # Set index=False to exclude row indices from the saved file
-    print(f"Dataset cluster assignments saved to {split_file_path}")
-
     return morgan_keys
 
 
@@ -147,24 +177,37 @@ def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
 
     """
     morgan_keys = check_if_dataset_exists(dataset, config, threshold)
-    morgan_fingerprints = morgan_keys['Morgan_Fingerprint']
-    # Apply PCA to reduce dimensionality
+    morgan_fingerprints = np.array(morgan_keys['Morgan_Fingerprint'].to_list())
+
+    # Apply PCA to reduce dimensionality to 3 components
     pca = PCA(n_components=3)
-    pca_result = pca.fit_transform(morgan_fingerprints.to_list())
-    # Create a DataFrame for visualization
-    df_pca = pd.DataFrame({'PCA1': pca_result[:, 0], 'PCA2': pca_result[:, 1], 'PCA3': pca_result[:, 2], 'Cluster': morgan_keys['Cluster']})
-    
-    # Plot the PCA in 3D
-    ax = plt.axes(projection='3d')
-    ax.scatter3D(df_pca['PCA1'], df_pca['PCA2'], df_pca['PCA3'], c=df_pca['Cluster'], cmap='viridis', alpha=0.2)
-    # Filter the DataFrame to include only selected cluster
-    df_cluster_spec = df_pca[df_pca['Cluster'] == selected_cluster]
-    # Plot only the values for cluster 5 with a different color
-    ax.scatter3D(df_cluster_spec['PCA1'], df_cluster_spec['PCA2'], df_cluster_spec['PCA3'], c='red', label=f'Cluster {selected_cluster}', alpha=0.9)
-    # Move the legend to the right of the plot
-    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
-    plt.title(f'PCA Plot with Clusters, Highlighted Cluster {selected_cluster}')
-    plt.show()
+    pca_result = pca.fit_transform(morgan_fingerprints)
+
+    # Create 3D scatter plot
+    scatter = go.Scatter3d(
+        x=pca_result[:, 0],
+        y=pca_result[:, 1],
+        z=pca_result[:, 2],
+        mode='markers',
+        marker=dict(
+            size=5,
+            color=morgan_keys['Cluster'],
+            colorscale='Viridis',
+            opacity=0.8
+        )
+    )
+
+    layout = go.Layout(
+        scene=dict(
+            xaxis=dict(title='PCA1'),
+            yaxis=dict(title='PCA2'),
+            zaxis=dict(title='PCA3'),
+        ),
+        title='3D PCA Plot with Clusters'
+    )
+
+    fig = go.Figure(data=[scatter], layout=layout)
+    fig.show()
 
 def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
     """
@@ -219,7 +262,9 @@ def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
 
 def calculate_morgan_fingerprints(mols):
     morgan_fps = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in mols]
-    return morgan_fps
+    morgan_fps_np = [np.array(fp) for fp in morgan_fps]
+
+    return morgan_fps_np
 
 def calculate_tanimoto_similarity(fp1, fp2):
     return DataStructs.TanimotoSimilarity(fp1, fp2)
@@ -237,8 +282,13 @@ def prepare_frag_plot(dataset, config):
     #         tanimoto_sim[j,i] = tanimoto_sim[i,j]
 
     # Calculate the linkage matrix for hierarchical clustering, 
-    morgan_matrix = linkage(morgan_fingerprints, method='average', metric='jaccard', optimal_ordering=True)
-        
+    # possible metrics: 'euclidean', 'jaccard', 'hamming', 'dice', 'matching', 'yule', 'kulsinski', 'rogerstanimoto', 'russellrao', 'sokalmichener', 'sokalsneath'
+
+    metric = 'rogerstanimoto'
+    morgan_matrix = linkage(morgan_fingerprints, method='average', metric=metric, optimal_ordering=True)
+    print('clustering done with metric:', metric)
+    
+    # Create a DataFrame with the InChIKeys and the Morgan fingerprints (save the fingerprints as np arrays)
     morgan_keys = pd.DataFrame({'InChIKey': X_InChIKey, 'Morgan_Fingerprint': morgan_fingerprints})
     
     # show the first 5 rows of the dataframe
@@ -269,12 +319,51 @@ def load_dataset(dataset, config):
 def check_if_dataset_exists(dataset, config, threshold):
     split_file_path = config["running_dir"] + f"/datasplit_{len(dataset)}_{config['split']}_threshold_{threshold}.csv"
 
-    if os.path.exists(split_file_path):
-        # load the dictionary from the file
-        print(f"Loading dataset indices from {split_file_path}")
-        morgan_keys = pd.read_csv(split_file_path)
+    # if os.path.exists(split_file_path):
+    #     # load the dictionary from the file
+    #     print(f"Loading dataset indices from {split_file_path}")
+    #     morgan_keys = pd.read_csv(split_file_path)
 
-    else:
-        morgan_keys = cluster_analysis(dataset, config, threshold)
+    # else:
+    morgan_keys = cluster_analysis(dataset, config, threshold)
 
     return morgan_keys
+
+def resplit_cluster(morgan_keys):
+    morgan_fingerprints = morgan_keys[morgan_keys["Cluster"] == 5]["Morgan_Fingerprint"]
+    morgan_inchikeys = morgan_keys[morgan_keys["Cluster"] == 5]["InChIKey"]
+
+    # make a list of the morgan fingerprints
+    morgan_fingerprints = list(morgan_fingerprints)
+
+    metric = 'rogerstanimoto'
+    morgan_matrix = linkage(morgan_fingerprints, method='average', metric=metric, optimal_ordering=True)
+    print('splitting the cluster 5 into 2 smaller clusters with:', metric)
+
+    clusters_morgan = fcluster(morgan_matrix, 0.051, criterion='distance')
+
+    # Merge clusters with less than 40 molecules with nearby clusters
+    unique_clusters, counts = np.unique(clusters_morgan, return_counts=True)
+
+    # make a dataframe with the InChiKeys and the clusters
+    df_morgan_cluster_5 = pd.DataFrame({"InChIKey": morgan_inchikeys, "Cluster": clusters_morgan})
+
+    # merge clusters 1 and 2 together into cluster 5, and then 3,4,5 together into cluster 7
+    df_morgan_cluster_5['Cluster'] = df_morgan_cluster_5['Cluster'].replace([1, 2], 8)
+    df_morgan_cluster_5['Cluster'] = df_morgan_cluster_5['Cluster'].replace([3, 4, 5], 7)
+    for index, row in df_morgan_cluster_5.iterrows():
+        inchikey = row["InChIKey"]
+        cluster = row["Cluster"]
+        morgan_keys.loc[morgan_keys["InChIKey"] == inchikey, "Cluster"] = cluster
+
+    # find the clusters that are greater than 5, and then subtract 1 from the cluster value
+    morgan_keys.loc[morgan_keys["Cluster"] > 5, "Cluster"] = morgan_keys.loc[morgan_keys["Cluster"] > 5, "Cluster"] - 1
+
+    # see how many samples are in each cluster for the morgan_keys dataframe
+    print(morgan_keys["Cluster"].value_counts())
+
+    return morgan_keys
+
+
+
+

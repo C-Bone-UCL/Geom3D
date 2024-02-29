@@ -34,7 +34,7 @@ def oligomer_scaffold_splitter(dataset, config):
 
     """
 
-    df_total, df_precursors = load_dataframes(dataset, config)
+    df_total, df_precursors, df_path, df_precursors_path = load_dataframes(dataset, config)
 
     check_data_exists(df_total, dataset, config)
 
@@ -75,7 +75,7 @@ def cluster_analysis(dataset, config, min_cluster_size=750, min_samples=50):
     - min_samples: int, minimum number of points required to form a core point
 
     """
-    df_total, df_precursors = load_dataframes(dataset, config)
+    df_total, df_precursors, df_path, df_precursors_path = load_dataframes(dataset, config)
     check_data_exists(df_total, dataset, config)
     
     print('Clustering with min_cluster_size =', min_cluster_size, 'and min_samples =', min_samples)
@@ -100,7 +100,7 @@ def pca_plot(dataset, config):
     - dataset: list of dictionaries
     - config: dictionary with the following
     """
-    df_total, df_precursors = load_dataframes(dataset, config)
+    df_total, df_precursors, df_path, df_precursors_path = load_dataframes(dataset, config)
     check_data_exists(df_total, dataset, config)
 
     min_cluster_size = config["oligomer_min_cluster_size"]  # Minimum size for a cluster to be considered valid
@@ -142,7 +142,7 @@ def substructure_analysis_oligomers(dataset, config, selected_cluster=1, min_clu
     - min_cluster_size: int, minimum size for a cluster to be considered valid
     - min_samples: int, minimum number of points required to form a core point
     """
-    df_total, df_precursors = load_dataframes(dataset, config)
+    df_total, df_precursors, df_path, df_precursors_path = load_dataframes(dataset, config)
     
     X_frag_mol = df_precursors['mol_opt'].values
     X_frag_inch = df_precursors['InChIKey'].values
@@ -236,11 +236,13 @@ def load_dataframes(dataset, config):
         config["df_precursor"],
     )
 
+    print(f"Loading data from {df_path} and {df_precursors_path}")
+
     df_total, df_precursors = database_utils.load_data_from_file(
         df_path, df_precursors_path
     )
 
-    return df_total, df_precursors
+    return df_total, df_precursors, df_path, df_precursors_path
 
 
 def check_data_exists(df_total, dataset, config):
@@ -277,10 +279,8 @@ def generate_repr(df_total, df_precursors,frag_properties,idx=0):
             init_rpr = df_eval[df_eval.columns[num_frag+1:]].values
         else:
             init_rpr = np.concatenate([init_rpr,df_eval[df_eval.columns[num_frag+1:]].values],axis=1)
-    print(init_rpr.shape)
+    # print(init_rpr.shape)
     X_explored_BO = torch.tensor(np.array(init_rpr.astype(float)), dtype=torch.float32)
-    print(X_explored_BO)
-
     return X_explored_BO
 
 
@@ -289,7 +289,7 @@ def generate_2d_PCA(dataset, config):
     Generate 2D PCA scores for the dataset and append them to df_total.
     """
     
-    df_total, df_precursors = load_dataframes(dataset, config)
+    df_total, df_precursors, df_path, df_precursors_path = load_dataframes(dataset, config)
     X_frag_mol = df_precursors['mol_opt'].values
 
     print(f"Dataset file not found in df_total. Generating...")
@@ -329,6 +329,6 @@ def generate_2d_PCA(dataset, config):
     df_total['2d_tani_pca_2'] = df_total['InChIKey'].map(df_pca_scores.set_index('InChIKey')['2d_tani_pca_2'])
 
     df_total.to_csv(df_path, index=False)
-    df_precursors.to_csv(df_precursors_path, index=False)
+    df_precursors.to_pickle(df_precursors_path)
     
     return
