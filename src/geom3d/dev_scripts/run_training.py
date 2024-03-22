@@ -12,7 +12,9 @@ Currently implemented parameters:
 model_name: SchNet, DimeNet, DimeNetPlusPlus, SphereNet, PaiNN, Equiformer
 target_name: combined, IP, ES1, fosc1
 lr_scheduler: CosineAnnealingLR, CosineAnnealingWarmRestartsm, StepLR
-split: random, fragment_scaffold, oligomer_scaffold, target_cluster
+split: random, fragment_scaffold, oligomer_scaffold, target_cluster, smart
+test_set_{splitter}_cluster: chosen cluster to put in the test set
+
 
 Example usage:
 python run_training.py --model_name SchNet --num_molecules 500 --target_name combined 
@@ -42,13 +44,14 @@ def run_training(
     test_set_fragment_cluster,
     test_set_oligomer_cluster,
     test_set_target_cluster,
-    running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/fragment_experiment",
+    smart_dataset_size,
+    running_dir="/rds/general/user/cb1319/home/GEOM3D/Geom3D/smart_datasize_study",
     dataset_folder="/rds/general/user/cb1319/home/GEOM3D/Geom3D/datasets"
 ):
     """
     Run the training with the given hyperparameters
     """
-    config_dir = os.path.join(running_dir, f"{model_name}_opt_{target_name}_{num_molecules}_{test_set_fragment_cluster}")
+    config_dir = os.path.join(running_dir, f"{model_name}_opt_{target_name}_{smart_dataset_size}_smart")
 
     # Check if the directory exists, and create it if it doesn't
     if not os.path.exists(config_dir):
@@ -67,7 +70,7 @@ def run_training(
     config["num_molecules"] = num_molecules
     config["running_dir"] = running_dir
     config["train_ratio"] = 0.8
-    config["name"] = f"{model_name}_opt_{target_name}_{num_molecules}_{test_set_fragment_cluster}"
+    config["name"] = f"{model_name}_opt_{target_name}_{smart_dataset_size}_smart"
     config["target_name"] = target_name
     config["batch_size"] = batch_size
 
@@ -81,6 +84,12 @@ def run_training(
     config["test_set_oligomer_cluster"] = test_set_oligomer_cluster
 
     config["test_set_target_cluster"] = test_set_target_cluster
+
+    config["smart_dataset_size"] = smart_dataset_size
+
+    config["manual_cluster_horizontal_line_y"] = 1.1
+    config["manual_cluster_vertical_line_x1"] = 0.5
+    config["manual_cluster_vertical_line_x2"] = 2.2
 
     config["mixed_precision"] = True
 
@@ -228,6 +237,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_set_fragment_cluster", type=int, default=1)
     parser.add_argument("--test_set_oligomer_cluster", type=int, default=1)
     parser.add_argument("--test_set_target_cluster", type=int, default=1)
+    parser.add_argument("--smart_dataset_size", type=int, default=5000)
     
     args = parser.parse_args()
     run_training(
@@ -243,5 +253,6 @@ if __name__ == "__main__":
         args.n_trials_hp_search,
         args.test_set_fragment_cluster,
         args.test_set_oligomer_cluster,
-        args.test_set_target_cluster
+        args.test_set_target_cluster,
+        args.smart_dataset_size
         )

@@ -165,7 +165,7 @@ def cluster_analysis(dataset, config, threshold):
     return morgan_keys
 
 
-def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
+def pca_plot(dataset, config, threshold=0.5):
     """
     Plot the PCA of the dataset, highlighting the specified cluster.
 
@@ -176,38 +176,34 @@ def pca_plot(dataset, config, selected_cluster=1, threshold=0.5):
     - threshold (float): threshold for clustering
 
     """
+    
     morgan_keys = check_if_dataset_exists(dataset, config, threshold)
     morgan_fingerprints = np.array(morgan_keys['Morgan_Fingerprint'].to_list())
 
-    # Apply PCA to reduce dimensionality to 3 components
-    pca = PCA(n_components=3)
+    # Apply PCA to reduce dimensionality to 2 components
+    pca = PCA(n_components=2)
     pca_result = pca.fit_transform(morgan_fingerprints)
 
-    # Create 3D scatter plot
-    scatter = go.Scatter3d(
-        x=pca_result[:, 0],
-        y=pca_result[:, 1],
-        z=pca_result[:, 2],
-        mode='markers',
-        marker=dict(
-            size=5,
-            color=morgan_keys['Cluster'],
-            colorscale='Viridis',
-            opacity=0.8
-        )
-    )
+    # Extract clusters
+    clusters = morgan_keys['Cluster']
 
-    layout = go.Layout(
-        scene=dict(
-            xaxis=dict(title='PCA1'),
-            yaxis=dict(title='PCA2'),
-            zaxis=dict(title='PCA3'),
-        ),
-        title='3D PCA Plot with Clusters'
-    )
+    # Define color scheme
+    unique_clusters = np.unique(clusters)
+    num_clusters = len(unique_clusters)
+    # possible color schemes: 'viridis', 'plasma', 'inferno', 'magma', 'cividis', 'cool', 'spring', 'summer', 'autumn', 'winter', 'hot', 'afmhot', 'gist_heat', 'copper', 'bone', 'pink', 'gray', 'ocean', 'gist_earth', 'terrain', 'gist_stern', 'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv', 'flag', 'prism', 'nipy_spectral', 'jet', 'turbo', 'nipy_spectral', 'gist_ncar'
+    colors = plt.cm.gnuplot(np.linspace(0, 1, num_clusters))
 
-    fig = go.Figure(data=[scatter], layout=layout)
-    fig.show()
+    # Plot each cluster
+    plt.figure(figsize=(8, 6))
+    for i, cluster_label in enumerate(unique_clusters):
+        cluster_indices = np.where(clusters == cluster_label)[0]
+        plt.scatter(pca_result[cluster_indices, 0], pca_result[cluster_indices, 1], c=[colors[i]], label=f'Cluster {cluster_label}')
+
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
+    plt.title('2D PCA Plot with Clusters')
+    plt.legend()
+    plt.show()
 
 def substructure_analysis(dataset, config, selected_cluster=1, threshold=0.5):
     """
@@ -282,7 +278,7 @@ def prepare_frag_plot(dataset, config):
     #         tanimoto_sim[j,i] = tanimoto_sim[i,j]
 
     # Calculate the linkage matrix for hierarchical clustering, 
-    # possible metrics: 'euclidean', 'jaccard', 'hamming', 'dice', 'matching', 'yule', 'kulsinski', 'rogerstanimoto', 'russellrao', 'sokalmichener', 'sokalsneath'
+    # possible metrics: 'euclidean', 'jaccard', 'hamming', 'dice', 'matching', 'yule', 'kulsinski', 'rogerstanimoto', 'russellrao', 'sokalmichener', 'sokalsneath',
 
     metric = 'rogerstanimoto'
     morgan_matrix = linkage(morgan_fingerprints, method='average', metric=metric, optimal_ordering=True)

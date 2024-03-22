@@ -84,22 +84,21 @@ def plot_training_results(chkpt_path, config_dir):
     y_max = max(y_values)
 
 
-    # fig, axis = plt.subplots(1, 3, figsize=(15, 5))
-    # for id, loader in enumerate([train_loader, val_loader, test_loader]):
-    #     axis[id].set_ylabel('y_pred')
-    #     axis[id].set_xlabel('y_true')
-    #     axis[id].set_xlim(y_min, y_max)  # Set x-axis limits based on min and max y values
-    #     axis[id].set_ylim(y_min, y_max)  # Set y-axis limits based on min and max y values
+    fig, axis = plt.subplots(1, 3, figsize=(15, 5))
+    for id, loader in enumerate([train_loader, val_loader, test_loader]):
+        axis[id].set_ylabel('y_pred')
+        axis[id].set_xlabel('y_true')
+        axis[id].set_xlim(y_min, y_max)  # Set x-axis limits based on min and max y values
+        axis[id].set_ylim(y_min, y_max)  # Set y-axis limits based on min and max y values
 
-    #     for x in loader:
-    #         with torch.no_grad():
-    #             Y_pred = pymodel(x.to(config["device"]))
-    #         break
-    #     axis[id].scatter(x.y.to('cpu'), Y_pred.to('cpu').detach())
-    #     axis[id].plot(x.y.to('cpu'), x.y.to('cpu'))
-    #     axis[id].set_title(['train set', 'validation set', 'test set'][id])
-    # plt.show()
-    # plt.savefig('training_results.png')
+        for x in loader:
+            with torch.no_grad():
+                Y_pred = pymodel(x.to(config["device"]))
+            break
+        axis[id].scatter(x.y.to('cpu'), Y_pred.to('cpu').detach())
+        axis[id].plot(x.y.to('cpu'), x.y.to('cpu'))
+        axis[id].set_title(['train set', 'validation set', 'test set'][id])
+    plt.show()
 
     # calculate the mean absolute error
     y_true = []

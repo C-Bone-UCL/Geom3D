@@ -56,6 +56,13 @@ def read_config(dir):
 
         config["test_set_target_cluster"] = 1
 
+        config["smart_dataset_choice"] = False
+        config["smart_dataset_size"] = 1000
+
+        config["manual_cluster_horizontal_line_y"] = 1.1
+        config["manual_cluster_vertical_line_x1"] = 0.5
+        config["manual_cluster_vertical_line_x2"] = 2.2
+
         config["lr"] = 5e-4
         config["lr_scale"] = 1
         config["decay"] = 0

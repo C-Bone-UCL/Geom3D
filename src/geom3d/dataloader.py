@@ -28,6 +28,8 @@ from geom3d.utils import oligomer_scaffold_split
 from geom3d.utils.oligomer_scaffold_split import *
 from geom3d.utils import top_target_split
 from geom3d.utils.top_target_split import *
+from geom3d.utils import smart_data_split
+from geom3d.utils.smart_data_split import *
 from geom3d.dataloaders import dataloaders_GemNet
 from geom3d.dataloaders.dataloaders_GemNet import DataLoaderGemNet
 from geom3d.dataloaders.dataloaders_GemNetLEP import DataLoaderGemNetLEP
@@ -39,6 +41,7 @@ importlib.reload(dataloaders_GemNet)
 importlib.reload(fragment_scaffold_split)
 importlib.reload(oligomer_scaffold_split)
 importlib.reload(top_target_split)
+importlib.reload(smart_data_split)
 
 def load_data(config):
     """
@@ -228,6 +231,7 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
     seed = config["seed"]
     num_mols = len(dataset)
     np.random.seed(seed)
+    smart_num_mols = min(config['smart_dataset_size'], num_mols)
 
     # Define the file path for storing the dataset split indices
     if config["split"] == "random":
@@ -238,6 +242,8 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
         split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_mincluster_{config['oligomer_min_cluster_size']}_minsample_{config['oligomer_min_samples']}_cluster_{config['test_set_oligomer_cluster']}.npz"
     elif config["split"] == "top_target":
         split_file_path = config["running_dir"] + f"/datasplit_{num_mols}_{config['split']}_target_{config['target_name']}_slice_{config['test_set_target_cluster']}.npz"
+    elif config["split"] == "smart":
+        split_file_path = config["running_dir"] + f"/datasplit_{smart_num_mols}_{config['split']}.npz"
     else:
         raise ValueError(f"Unknown split method: {config['split']}")
 
@@ -261,6 +267,18 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
             train_idx = all_idx[:Ntrain]
             valid_idx = all_idx[Ntrain : Ntrain + Nvalid]
             test_idx = all_idx[Ntrain + Nvalid :]
+
+        elif config["split"] == "smart":
+            print("smart split")
+            train_keys, valid_keys, test_keys = smart_data_splitter(dataset, config)
+            train_idx = [i for i, data in enumerate(dataset) if data['InChIKey'] in train_keys]
+            valid_idx = [i for i, data in enumerate(dataset) if data['InChIKey'] in valid_keys]
+            test_idx = [i for i, data in enumerate(dataset) if data['InChIKey'] in test_keys]
+
+            # remove overlappping indices
+            train_idx = list(set(train_idx) - set(valid_idx) - set(test_idx))
+            valid_idx = list(set(valid_idx) - set(train_idx) - set(test_idx))
+            test_idx = list(set(test_idx) - set(train_idx) - set(valid_idx))
 
         elif config["split"] == "fragment_scaffold":
             print("fragment_scaffold split")
@@ -305,9 +323,13 @@ def train_val_test_split(dataset, config, batch_size, smiles_list=None):
     print("valid_idx: ", valid_idx)
     print("test_idx: ", test_idx)
     
+    print(set(train_idx).intersection(set(valid_idx)))
+    print(set(valid_idx).intersection(set(test_idx)))
     assert len(set(train_idx).intersection(set(valid_idx))) == 0
     assert len(set(valid_idx).intersection(set(test_idx))) == 0
-    assert len(train_idx) + len(valid_idx) + len(test_idx) == num_mols
+
+    if not config["split"] == "smart":
+        assert len(train_idx) + len(valid_idx) + len(test_idx) == num_mols
 
     train_dataset = [dataset[x] for x in train_idx]
     valid_dataset = [dataset[x] for x in valid_idx]
