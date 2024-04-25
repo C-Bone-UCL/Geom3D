@@ -1,0 +1,264 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.5
+    cli_version: 0.16.2
+    framework: huggingface
+    huggingface_version: 4.35.2
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    start_time: 1707146425.137814
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 35
+      - 49
+      - 53
+      - 55
+      - 77
+      2:
+      - 1
+      - 5
+      - 11
+      - 35
+      - 49
+      - 53
+      - 55
+      - 77
+      3:
+      - 2
+      - 7
+      - 13
+      - 23
+      4: 3.11.5
+      5: 0.16.2
+      6: 4.35.2
+      8:
+      - 1
+      - 5
+      13: linux-x86_64
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: lr-Adam
+      5: 1
+      6:
+      - 1
+    - 1: train_loss
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1
+    - 1: val_loss
+      5: 1
+      6:
+      - 1
+    - 1: lr
+      5: 1
+      6:
+      - 1
+STK_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/STK_path/
+batch_size:
+  desc: null
+  value: 32
+database_name:
+  desc: null
+  value: stk_mohammed_BO
+dataset_path:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius.pt
+dataset_path_frag:
+  desc: null
+  value: ''
+decay:
+  desc: null
+  value: 0
+df_precursor:
+  desc: null
+  value: calculation_data_precursor_071123_clean.pkl
+df_total:
+  desc: null
+  value: df_total_subset_16_11_23.csv
+emb_dim:
+  desc: null
+  value: 128
+fragment_cluster_threshold:
+  desc: null
+  value: 0.55
+hp_search:
+  desc: null
+  value: true
+load_dataset:
+  desc: null
+  value: true
+lr:
+  desc: null
+  value: 0.0005
+lr_decay_factor:
+  desc: null
+  value: 0.5
+lr_decay_patience:
+  desc: null
+  value: 50
+lr_decay_step_size:
+  desc: null
+  value: 100
+lr_scale:
+  desc: null
+  value: 1
+lr_scheduler:
+  desc: null
+  value: StepLR
+max_epochs:
+  desc: null
+  value: 5
+max_epochs_hp_search:
+  desc: null
+  value: 5
+min_lr:
+  desc: null
+  value: 1.0e-06
+mixed_precision:
+  desc: null
+  value: true
+model:
+  desc: null
+  value:
+    cutoff: 7
+    max_z: 93
+    n_atom_basis: 256
+    n_interactions: 3
+    n_out: 1
+    n_rbf: 20
+    readout: add
+model_name:
+  desc: null
+  value: PaiNN
+model_path:
+  desc: null
+  value: ''
+n_trials_hp_search:
+  desc: null
+  value: 2
+name:
+  desc: null
+  value: PaiNN_combined_80000
+num_molecules:
+  desc: null
+  value: 80000
+num_tasks:
+  desc: null
+  value: 1
+num_workers:
+  desc: null
+  value: 0
+number_of_fragement:
+  desc: null
+  value: 6
+oligomer_min_cluster_size:
+  desc: null
+  value: 750
+oligomer_min_samples:
+  desc: null
+  value: 50
+pl_model_chkpt:
+  desc: null
+  value: ''
+pymongo_client:
+  desc: null
+  value: mongodb://129.31.66.201/
+running_dir:
+  desc: null
+  value: /rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test
+save_dataset:
+  desc: null
+  value: true
+seed:
+  desc: null
+  value: 42
+split:
+  desc: null
+  value: random
+target_name:
+  desc: null
+  value: combined
+test_set_fragment_cluster:
+  desc: null
+  value: 6
+test_set_oligomer_cluster:
+  desc: null
+  value: 6
+train_ratio:
+  desc: null
+  value: 0.8
+valid_ratio:
+  desc: null
+  value: 0.1
+device:
+  desc: null
+  value: cuda
+config:
+  desc: null
+  value:
+    STK_path: /rds/general/user/cb1319/home/GEOM3D/STK_path/
+    batch_size: 32
+    database_name: stk_mohammed_BO
+    dataset_path: /rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test/80Kdataset_radius.pt
+    dataset_path_frag: ''
+    decay: 0
+    df_precursor: calculation_data_precursor_071123_clean.pkl
+    df_total: df_total_subset_16_11_23.csv
+    emb_dim: 128
+    fragment_cluster_threshold: 0.55
+    hp_search: true
+    load_dataset: true
+    lr: 0.0005
+    lr_decay_factor: 0.5
+    lr_decay_patience: 50
+    lr_decay_step_size: 100
+    lr_scale: 1
+    lr_scheduler: StepLR
+    max_epochs: 5
+    max_epochs_hp_search: 5
+    min_lr: 1.0e-06
+    mixed_precision: true
+    model:
+      cutoff: 7
+      max_z: 93
+      n_atom_basis: 256
+      n_interactions: 3
+      n_out: 1
+      n_rbf: 20
+      readout: add
+    model_name: PaiNN
+    model_path: ''
+    n_trials_hp_search: 2
+    name: PaiNN_combined_80000
+    num_molecules: 80000
+    num_tasks: 1
+    num_workers: 0
+    number_of_fragement: 6
+    oligomer_min_cluster_size: 750
+    oligomer_min_samples: 50
+    pl_model_chkpt: ''
+    pymongo_client: mongodb://129.31.66.201/
+    running_dir: /rds/general/user/cb1319/home/GEOM3D/Geom3D/performance_eval_test
+    save_dataset: true
+    seed: 42
+    split: random
+    target_name: combined
+    test_set_fragment_cluster: 6
+    test_set_oligomer_cluster: 6
+    train_ratio: 0.8
+    valid_ratio: 0.1
+    device: cuda

@@ -11,11 +11,12 @@ from torch_geometric.utils import scatter
 
 from torch_geometric.typing import SparseTensor
 
-from .DimeNet import ResidualLayer
+#switched all the 'swish' to swish imported from .dimenet
+from .DimeNet import ResidualLayer, swish
 from .SphereNet_utils import angle_emb, dist_emb, torsion_emb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+REDUCE = "mean"
 
 class emb(torch.nn.Module):
     def __init__(self, num_spherical, num_radial, cutoff, envelope_exponent):
@@ -38,7 +39,7 @@ class emb(torch.nn.Module):
 
 
 class init(torch.nn.Module):
-    def __init__(self, num_radial, hidden_channels, act='swish'):
+    def __init__(self, num_radial, hidden_channels, act=swish):
         super(init, self).__init__()
         self.act = act
         self.emb = Embedding(95, hidden_channels)
@@ -75,7 +76,7 @@ class update_e(torch.nn.Module):
         num_radial,
         num_before_skip,
         num_after_skip,
-        act='swish',
+        act=swish,
     ):
         super(update_e, self).__init__()
         self.act = act
@@ -155,7 +156,8 @@ class update_e(torch.nn.Module):
         t = self.lin_t2(t)
         x_kj = x_kj * t
 
-        x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x1.size(0))
+        # x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x1.size(0))
+        x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x1.size(0), reduce=REDUCE)
         x_kj = self.act(self.lin_up(x_kj))
 
         e1 = x_ji + x_kj
@@ -201,9 +203,19 @@ class update_v(torch.nn.Module):
         if self.output_init == "GlorotOrthogonal":
             glorot_orthogonal(self.lin.weight, scale=2.0)
 
-    def forward(self, e, i):
+    # def forward(self, e, i):
+    #     _, e2 = e
+    #     v = scatter(e2, i, dim=0)
+    #     v = self.lin_up(v)
+    #     for lin in self.lins:
+    #         v = self.act(lin(v))
+    #     v = self.lin(v)
+    #     return v
+    def forward(self, e, i, dim_size=None):
+        if dim_size == None:
+            dim_size = i.max().item() + 1
         _, e2 = e
-        v = scatter(e2, i, dim=0)
+        v = scatter(e2, i, dim=0, dim_size=dim_size, reduce=REDUCE)
         v = self.lin_up(v)
         for lin in self.lins:
             v = self.act(lin(v))
@@ -215,8 +227,10 @@ class update_u(torch.nn.Module):
     def __init__(self):
         super(update_u, self).__init__()
 
+    # Cyprien added here dim_size=None
     def forward(self, u, v, batch):
-        u += scatter(v, batch, dim=0)
+        # u += scatter(v, batch, dim=0)
+        u += scatter(v, batch, dim=0, reduce=REDUCE)
         return u
 
 
@@ -264,7 +278,7 @@ class SphereNet(torch.nn.Module):
         num_before_skip=1,
         num_after_skip=2,
         num_output_layers=3,
-        act='swish',
+        act=swish,
         output_init="GlorotOrthogonal",
     ):
         super(SphereNet, self).__init__()
@@ -329,21 +343,25 @@ class SphereNet(torch.nn.Module):
         for update_v in self.update_vs:
             update_v.reset_parameters()
 
+# Debug 1 - when training was not working - original script for spherenet
+            
     def triplets(self, pos, edge_index, num_nodes, use_torsion=False):
         """
-        Compute the diatance, angle, and torsion from geometric information.
+        Compute the distance, angle, and torsion from geometric information.
         Args:
             pos: Geometric information for every node in the graph.
-            edgee_index: Edge index of the graph.
-            number_nodes: Number of nodes in the graph.
-            use_torsion: If set to :obj:`True`, will return distance, angle and torsion, otherwise only return distance and angle (also retrun some useful index). (default: :obj:`False`)
+            edge_index: Edge index of the graph.
+            num_nodes: Number of nodes in the graph.
+            use_torsion: If set to True, will return distance, angle, and torsion,
+                         otherwise only return distance and angle.
         """
+        device = pos.device  # Get the device of the input tensor 'pos', added by cyprien to get over the error of both having variable 'device'
         j, i = edge_index  # j->i
 
         # Calculate distances. # number of edges
         dist = (pos[i] - pos[j]).pow(2).sum(dim=-1).sqrt()
 
-        value = torch.arange(j.size(0), device=j.device)
+        value = torch.arange(j.size(0), device=device)
         adj_t = SparseTensor(
             row=i, col=j, value=value, sparse_sizes=(num_nodes, num_nodes)
         )
@@ -370,20 +388,8 @@ class SphereNet(torch.nn.Module):
 
         idx_batch = torch.arange(len(idx_i), device=device)
         idx_k_n = adj_t[idx_j].storage.col()
-        repeat = num_triplets - 1
-        num_triplets_t = num_triplets.repeat_interleave(repeat)
-        #num_triplets_t = num_triplets.repeat_interleave(num_triplets) - 1
-
-        #debug
-        print("Sizes before repeat_interleave:")
-        print("idx_i size:", idx_i.size())
-        print("num_triplets_t size:", num_triplets_t.size())
-        print("num_triplets size:", num_triplets.size())
-        print("idx_j size:", idx_j.size())
-        print("idx_k size:", idx_k.size())
-        print("idx_batch size:", idx_batch.size())
-        print("idx_k_n size:", idx_k_n.size())
-
+        repeat = num_triplets
+        num_triplets_t = num_triplets.repeat_interleave(repeat)[mask]
         idx_i_t = idx_i.repeat_interleave(num_triplets_t)
         idx_j_t = idx_j.repeat_interleave(num_triplets_t)
         idx_k_t = idx_k.repeat_interleave(num_triplets_t)
@@ -416,6 +422,8 @@ class SphereNet(torch.nn.Module):
         else:
             return dist, angle, i, j, idx_kj, idx_ji
 
+# Debug 1: when training was not working, see Project Progress docu for more info
+
     def forward(self, z, pos, batch):
         if self.energy_and_force:
             pos.requires_grad_()
@@ -426,13 +434,21 @@ class SphereNet(torch.nn.Module):
         )
 
         emb = self.emb(dist, angle, torsion, idx_kj)
+        
+        if batch is not None:
+            node_num = batch.size()[0]
+        else:
+            node_num = z.size(0)
 
         # Initialize edge, node, graph features
         e = self.init_e(z, emb, i, j)
-        v = self.init_v(e, i)
-        u = self.init_u(
-            torch.zeros_like(scatter(v, batch, dim=0)), v, batch
-        )  # scatter(v, batch, dim=0)
+        v = self.init_v(e, i, dim_size=node_num)
+
+        # Check if batch is not None before using it, this part has been edited from original to fix error (added the reduce = REDUCE and the if statement)
+        if batch is not None:
+            u = self.init_u(torch.zeros_like(scatter(v, batch, dim=0, reduce=REDUCE)), v, batch)
+        else:
+            u = self.init_u(torch.zeros_like(v), v, batch)
 
         for update_e, update_v, update_u in zip(
             self.update_es, self.update_vs, self.update_us
