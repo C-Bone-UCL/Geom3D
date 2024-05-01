@@ -1,0 +1,7 @@
+name: Geom3D
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+prefix: /rds/general/user/cb1319/home/.conda/envs/Geom3D
+

@@ -458,6 +458,9 @@ class GemNet(torch.nn.Module):
 
     def forward(self, z, positions, inputs):
         Z, R = z, positions
+        print("z.shape:", z.shape)
+        print("positions.shape:", positions.shape)
+        print("inputs['id_a'].shape:", inputs["id_a"].shape)
         id_a, id_c, id_undir, id_swap = (
             inputs["id_a"],
             inputs["id_c"],

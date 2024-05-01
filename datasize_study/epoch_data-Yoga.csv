@@ -1,0 +1,5 @@
+,PaiNN,SchNet,DimeNet,DimeNetPlusPlus,SphereNet,Equiformer
+80000,58,98,41,53,72,88
+40000,50,97,75,40,26,71
+10000,85,84,18,63,97,85
+5000,94,25,40,83,98,98

@@ -8,6 +8,18 @@ import pymongo
 
 # read data in database
 def load_data_database(df_precursor_loc="/rds/general/user/cb1319/home/data/output/Prescursor_data/calculation_data_precursor_071123_clean.pkl"):
+    """
+    Load the data from the database and prepare it for the model.
+
+    Args:
+    - df_precursor_loc (str): location of the precursor data
+
+    Returns:
+    - df_total (pd.DataFrame): dataframe containing the data
+    - df_precursors (pd.DataFrame): dataframe containing the precursor data
+
+    """
+    
     def load_data():
         client = pymongo.MongoClient("mongodb://129.31.66.201/")
         database = client["stk_cyprien"]
@@ -70,10 +82,23 @@ def load_data_database(df_precursor_loc="/rds/general/user/cb1319/home/data/outp
 
 # or load data from files
 def load_data_from_file(
-    df_path="Data/df_total_new.csv2023_08_20",
-    df_precursors_path="Data/calculation_data_precursor_310823_clean.pkl",
+    df_path="Data/df_total_subset_16_11_23.csv",
+    df_precursors_path="Data/calculation_data_precursor_071123_clean.pkl",
     features_frag=None,
 ):
+    """
+    Load the data from the database and prepare it for the model.
+
+    Args:
+    - df_path (str): location of the dataframe
+    - df_precursors_path (str): location of the precursor data
+    - features_frag (list): list of features to use
+
+    Returns:
+    - df_total (pd.DataFrame): dataframe containing the data
+    - df_precursors (pd.DataFrame): dataframe containing the precursor data
+
+    """
     def prepare_df_for_plot(
         df_total_new: pd.DataFrame = [], features_frag=features_frag
     ):
@@ -86,6 +111,7 @@ def load_data_from_file(
             df_test[f"InChIKey_{i}"] = df_test["BB"].apply(
                 lambda x: eval(x)[i]["InChIKey"]
             )
+
         df_precursors = pd.read_pickle(df_precursors_path)
         if features_frag is None:
             features_frag = df_precursors.columns[1:7].append(
