@@ -10,12 +10,21 @@
 </p>
 
 <h3 align="left">An example experiment:</h3>
+
 - python run_training.py --model_name SchNet --num_molecules 500 --target_name combined
 <p align="left">
 </p>
 
 <h3 align="left">Some Jupyter Notebooks were generated to show examples of the different experiments one can run using the package in the example_notebooks folder.</h3>
+
 - https://github.com/cb1319/Geom3D/tree/main/example_notebooks
+<p align="left">
+</p>
+</p>
+
+<h3 align="left">An interactive Dashboard of the Results can be found at:</h3>
+
+- This website, it might take a few tries to load... : https://cyprienmsci.onrender.com/
 <p align="left">
 </p>
 </p>
