@@ -22,7 +22,7 @@
 </p>
 </p>
 
-<h3 align="left">An interactive Dashboard of the Results can be found at:</h3>
+<h3 align="left">An interactive Dashboard of some results one can get using the package can be found at:</h3>
 
 - This website, it might take a few tries to load... : https://cyprienmsci.onrender.com/
 <p align="left">
