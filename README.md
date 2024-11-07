@@ -30,4 +30,4 @@
 </p>
 
 
-The data collected during the project was saved to dataframes that can be found in the relecant experiment folders.
+The data collected during the project was saved to dataframes that can be found in the relevant experiment folders.
