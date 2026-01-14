@@ -1,7 +1,7 @@
 <h1 align="center">Hi 👋, I'm Cyprien Bone</h1>
 <h3 align="center">This is my 2023-2024 MSci Project carried out at Imperial College London</h3>
 
-- 🔭 This is a [A Geometric GNN package to investigate property prediction for Organic Semiconductors](https://github.com/cb1319/Geom3D/)
+- 🔭 This project is based off [https://github.com/chao1224/Geom3D](https://github.com/chao1224/Geom3D)
 
 <h3 align="left">The developper script used to execute an experiment with the package can be found at:</h3>
 
@@ -31,3 +31,4 @@
 
 
 The data collected during the project was saved to dataframes that can be found in the relevant experiment folders.
+
